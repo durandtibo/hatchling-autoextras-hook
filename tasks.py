@@ -31,7 +31,7 @@ def check_lint(c: Context) -> None:
 @task
 def create_venv(c: Context) -> None:
     r"""Create a virtual environment."""
-    c.run(f"uv venv --clear", pty=True)
+    c.run("uv venv --clear", pty=True)
     c.run("source .venv/bin/activate", pty=True)
     c.run("make install-invoke", pty=True)
 
@@ -136,7 +136,10 @@ def publish_doc_dev(c: Context) -> None:
     r"""Publish development (e.g. unstable) docs."""
     # delete previous version if it exists
     c.run("mike delete --config-file docs/mkdocs.yml main", pty=True, warn=True)
-    c.run("mike deploy --config-file docs/mkdocs.yml --push --update-aliases main dev", pty=True)
+    c.run(
+        "mike deploy --config-file docs/mkdocs.yml --push --update-aliases main dev",
+        pty=True,
+    )
 
 
 @task
@@ -154,6 +157,10 @@ def publish_doc_latest(c: Context) -> None:
     # delete previous version if it exists
     c.run(f"mike delete --config-file docs/mkdocs.yml {tag}", pty=True, warn=True)
     c.run(
-        f"mike deploy --config-file docs/mkdocs.yml --push --update-aliases {tag} latest", pty=True
+        f"mike deploy --config-file docs/mkdocs.yml --push --update-aliases {tag} latest",
+        pty=True,
     )
-    c.run("mike set-default --config-file docs/mkdocs.yml --push --allow-empty latest", pty=True)
+    c.run(
+        "mike set-default --config-file docs/mkdocs.yml --push --allow-empty latest",
+        pty=True,
+    )
