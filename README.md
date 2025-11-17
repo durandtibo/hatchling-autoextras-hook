@@ -54,11 +54,14 @@
 
 </p>
 
-Hatchling metadata hook to automatically generate an `all` extra that combines all optional dependencies.
+Hatchling metadata hook to automatically generate an `all` extra that combines all optional
+dependencies.
 
 ## Overview
 
-This package provides a Hatchling metadata hook that automatically creates an `all` extra in your project's optional dependencies. The `all` extra will contain all dependencies from all other extras, making it easy for users to install all optional features at once.
+This package provides a Hatchling metadata hook that automatically creates an `all` extra in your
+project's optional dependencies. The `all` extra will contain all dependencies from all other
+extras, making it easy for users to install all optional features at once.
 
 ## Installation
 
@@ -78,7 +81,9 @@ Enable the hook in your `pyproject.toml`:
 [tool.hatch.metadata.hooks.autoextras]
 ```
 
-**Important**: Hatchling metadata hooks are only triggered when there is at least one dynamic field in your project metadata. If you don't already have any dynamic fields, you can add `version` as a dynamic field:
+**Important**: Hatchling metadata hooks are only triggered when there is at least one dynamic field
+in your project metadata. If you don't already have any dynamic fields, you can add `version` as a
+dynamic field:
 
 ```toml
 [project]
@@ -157,6 +162,12 @@ uv sync
 ```bash
 uv run pytest
 ```
+
+### Dependencies
+
+| `batcharray` | `hatchling`   | `python`       |
+|--------------|---------------|----------------|
+| `main`       | `>=1.18,<2.0` | `>=3.10,<3.15` |
 
 ## License
 

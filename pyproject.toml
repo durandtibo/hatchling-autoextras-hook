@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hatchling-autoextras-hook"
-version = "0.1.0"
+version = "0.0.1"
 description = "Hatchling metadata hook to generate all extras"
 readme = "README.md"
 authors = [
@@ -15,7 +15,7 @@ license = "BSD-3-Clause"
 requires-python = ">=3.10"
 
 dependencies = [
-    "hatchling>=1.18.0",
+    "hatchling>=1.18,<2.0",
 ]
 
 [project.entry-points.hatch]
