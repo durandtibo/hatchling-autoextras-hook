@@ -17,7 +17,8 @@ def test_update_with_no_optional_dependencies() -> None:
 
 
 def test_update_with_empty_optional_dependencies() -> None:
-    """Test that update does nothing when optional dependencies is empty."""
+    """Test that update does nothing when optional dependencies is
+    empty."""
     metadata = {"optional-dependencies": {}}
     AutoExtrasMetadataHook("test", {}).update(metadata)
     assert metadata == {"optional-dependencies": {}}

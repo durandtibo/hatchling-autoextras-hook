@@ -25,11 +25,7 @@ def main() -> None:
     r"""Generate the package versions and save them in a JSON file."""
     versions = get_package_versions()
     logger.info(f"{versions=}")
-    path = (
-        Path(__file__)
-        .parent.parent.joinpath("dev/config")
-        .joinpath("package_versions.json")
-    )
+    path = Path(__file__).parent.parent.joinpath("dev/config").joinpath("package_versions.json")
     logger.info(f"Saving package versions to {path}")
     save_json(versions, path, exist_ok=True)
 
