@@ -14,6 +14,7 @@ SOURCE = f"src/{NAME}"
 TESTS = "tests"
 UNIT_TESTS = f"{TESTS}/unit"
 INTEGRATION_TESTS = f"{TESTS}/integration"
+PYTHON_VERSION = "3.13"
 
 
 @task
@@ -31,7 +32,7 @@ def check_lint(c: Context) -> None:
 @task
 def create_venv(c: Context) -> None:
     r"""Create a virtual environment."""
-    c.run("uv venv --clear", pty=True)
+    c.run(f"uv venv --python {PYTHON_VERSION} --clear", pty=True)
     c.run("source .venv/bin/activate", pty=True)
     c.run("make install-invoke", pty=True)
 
