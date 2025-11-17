@@ -1,7 +1,5 @@
 """Tests for the autoextras metadata hook."""
 
-import pytest
-
 from hatchling_autoextras_hook.hooks import AutoExtrasMetadataHook
 
 
@@ -13,21 +11,24 @@ class TestAutoExtrasMetadataHook:
         assert AutoExtrasMetadataHook.PLUGIN_NAME == "autoextras"
 
     def test_update_with_no_optional_dependencies(self):
-        """Test that update does nothing when there are no optional dependencies."""
+        """Test that update does nothing when there are no optional
+        dependencies."""
         hook = AutoExtrasMetadataHook("test", {})
         metadata = {}
         hook.update(metadata)
         assert metadata == {}
 
     def test_update_with_empty_optional_dependencies(self):
-        """Test that update does nothing when optional dependencies is empty."""
+        """Test that update does nothing when optional dependencies is
+        empty."""
         hook = AutoExtrasMetadataHook("test", {})
         metadata = {"optional-dependencies": {}}
         hook.update(metadata)
         assert metadata == {"optional-dependencies": {}}
 
     def test_update_with_single_extra(self):
-        """Test that update creates 'all' extra with dependencies from one extra."""
+        """Test that update creates 'all' extra with dependencies from one
+        extra."""
         hook = AutoExtrasMetadataHook("test", {})
         metadata = {
             "optional-dependencies": {
@@ -36,7 +37,10 @@ class TestAutoExtrasMetadataHook:
         }
         hook.update(metadata)
         assert "all" in metadata["optional-dependencies"]
-        assert set(metadata["optional-dependencies"]["all"]) == {"pytest>=7.0", "black>=22.0"}
+        assert set(metadata["optional-dependencies"]["all"]) == {
+            "pytest>=7.0",
+            "black>=22.0",
+        }
 
     def test_update_with_multiple_extras(self):
         """Test that update creates 'all' extra combining all extras."""
@@ -88,7 +92,10 @@ class TestAutoExtrasMetadataHook:
         assert "all" in metadata["optional-dependencies"]
         # 'all' should be regenerated from 'dev', not include old-dependency
         assert "old-dependency" not in metadata["optional-dependencies"]["all"]
-        assert set(metadata["optional-dependencies"]["all"]) == {"pytest>=7.0", "black>=22.0"}
+        assert set(metadata["optional-dependencies"]["all"]) == {
+            "pytest>=7.0",
+            "black>=22.0",
+        }
 
     def test_update_sorts_dependencies(self):
         """Test that dependencies in 'all' extra are sorted."""
