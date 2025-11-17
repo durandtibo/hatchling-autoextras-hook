@@ -47,10 +47,6 @@ homepage = "https://github.com/durandtibo/hatchling-autoextras-hook"
 repository = "https://github.com/durandtibo/hatchling-autoextras-hook"
 documentation = "https://durandtibo.github.io/hatchling-autoextras-hook/"
 
-[tool.hatch.build.targets.wheel]
-packages = ["hatchling_autoextras_hook"]
-only-include = ["hatchling_autoextras_hook"]
-
 [tool.uv.pip]
 torch-backend = "auto"
 
