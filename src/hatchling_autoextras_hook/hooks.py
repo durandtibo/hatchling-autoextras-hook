@@ -1,12 +1,9 @@
 """Hatchling metadata hook to automatically generate 'all' extras."""
 
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
 from hatchling.metadata.plugin.interface import MetadataHookInterface
 from hatchling.plugin import hookimpl
-
-if TYPE_CHECKING:
-    pass
 
 
 class AutoExtrasMetadataHook(MetadataHookInterface):
@@ -14,6 +11,23 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
     This hook collects all optional dependencies defined in the project
     and creates an 'all' extra that includes all of them.
+
+    Example usage:
+
+    ```pycon
+
+    >>> from hatchling_autoextras_hook.hooks import AutoExtrasMetadataHook
+    >>> metadata = {
+    ...     "optional-dependencies": {
+    ...         "dev": ["pytest>=7.0", "black>=22.0"],
+    ...     }
+    ... }
+    >>> AutoExtrasMetadataHook("test", {}).update(metadata)
+    >>> metadata
+    {'optional-dependencies': {'dev': ['pytest>=7.0', 'black>=22.0'],
+     'all': ['black>=22.0', 'pytest>=7.0']}}
+
+    ```
     """
 
     PLUGIN_NAME = "autoextras"
@@ -47,4 +61,4 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 @hookimpl
 def hatch_register_metadata_hook() -> type[MetadataHookInterface]:
     """Register the autoextras metadata hook with hatchling."""
-    return AutoExtrasMetadataHook  # type: ignore[return-value]
+    return AutoExtrasMetadataHook
