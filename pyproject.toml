@@ -1,12 +1,19 @@
+[build-system]
+requires = ["hatchling >= 1.27"]
+build-backend = "hatchling.build"
+
 [project]
 name = "hatchling-autoextras-hook"
 version = "0.1.0"
 description = "Hatchling metadata hook to generate all extras"
 readme = "README.md"
 authors = [
-    { name = "copilot-swe-agent[bot]", email = "198982749+Copilot@users.noreply.github.com" }
+    { name = "Thibaut Durand", email = "durand.tibo+gh@gmail.com" },
 ]
-requires-python = ">=3.12"
+license = "BSD-3-Clause"
+
+requires-python = ">=3.10"
+
 dependencies = [
     "hatchling>=1.18.0",
 ]
@@ -14,11 +21,17 @@ dependencies = [
 [project.entry-points.hatch]
 autoextras = "hatchling_autoextras_hook.hooks"
 
-[build-system]
-requires = ["hatchling>=1.18.0"]
-build-backend = "hatchling.build"
-
 [dependency-groups]
 dev = [
-    "pytest>=9.0.1",
+    "black >=25.11",
+    "coverage[toml] >=7.11,<8.0",
+    "feu[all] >=0.5.0,<1.0",
+    "invoke >=2.2.0,<3.0",
+    "pre-commit >=4.4,<5.0",
+    "pygments >=2.19,<3.0",
+    "pytest >=9.0,<10.0",
+    "pytest-cov >=7.0,<8.0",
+    "pytest-timeout >=2.4,<3.0",
+    "ruff >=0.14,<1.0",
+    "xdoctest >=1.3,<2.0",
 ]
