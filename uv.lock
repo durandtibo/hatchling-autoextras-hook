@@ -414,7 +414,7 @@ docs = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "hatchling", specifier = ">=1.18.0" }]
+requires-dist = [{ name = "hatchling", specifier = ">=1.18,<2.0" }]
 
 [package.metadata.requires-dev]
 dev = [
