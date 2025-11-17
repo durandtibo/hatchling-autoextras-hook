@@ -1,0 +1,24 @@
+[project]
+name = "hatchling-autoextras-hook"
+version = "0.1.0"
+description = "Hatchling metadata hook to generate all extras"
+readme = "README.md"
+authors = [
+    { name = "copilot-swe-agent[bot]", email = "198982749+Copilot@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "hatchling>=1.18.0",
+]
+
+[project.entry-points.hatch]
+autoextras = "hatchling_autoextras_hook.hooks"
+
+[build-system]
+requires = ["hatchling>=1.18.0"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+]
