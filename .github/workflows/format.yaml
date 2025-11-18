@@ -17,10 +17,10 @@ jobs:
       - name: Setup python environment
         uses: ./.github/actions/setup-env
 
-      - name: Format
+      - name: Check format
         run: |
-          make format
+          inv check-format
 
-      - name: Lint
+      - name: Check lint
         run: |
-          make lint
+          inv check-lint
