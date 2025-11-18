@@ -55,15 +55,18 @@ def docformat(c: Context) -> None:
 
 
 @task
-def install(c: Context, all_deps: bool = False, docs: bool = False) -> None:
+def install(
+    c: Context, optional_deps: bool = True, dev_deps: bool = True, docs_deps: bool = False
+) -> None:
     r"""Install packages."""
-    cmd = ["uv pip install -r pyproject.toml --group dev"]
-    if docs:
-        cmd.append("--group docs")
-    if all_deps:
+    cmd = ["uv sync --frozen"]
+    if optional_deps:
         cmd.append("--all-extras")
+    if dev_deps:
+        cmd.append("--group dev")
+    if docs_deps:
+        cmd.append("--group docs")
     c.run(" ".join(cmd), pty=True)
-    c.run("uv pip install -e .", pty=True)
 
 
 @task
@@ -137,10 +140,7 @@ def publish_doc_dev(c: Context) -> None:
     r"""Publish development (e.g. unstable) docs."""
     # delete previous version if it exists
     c.run("mike delete --config-file docs/mkdocs.yml main", pty=True, warn=True)
-    c.run(
-        "mike deploy --config-file docs/mkdocs.yml --push --update-aliases main dev",
-        pty=True,
-    )
+    c.run("mike deploy --config-file docs/mkdocs.yml --push --update-aliases main dev", pty=True)
 
 
 @task
@@ -158,10 +158,6 @@ def publish_doc_latest(c: Context) -> None:
     # delete previous version if it exists
     c.run(f"mike delete --config-file docs/mkdocs.yml {tag}", pty=True, warn=True)
     c.run(
-        f"mike deploy --config-file docs/mkdocs.yml --push --update-aliases {tag} latest",
-        pty=True,
+        f"mike deploy --config-file docs/mkdocs.yml --push --update-aliases {tag} latest", pty=True
     )
-    c.run(
-        "mike set-default --config-file docs/mkdocs.yml --push --allow-empty latest",
-        pty=True,
-    )
+    c.run("mike set-default --config-file docs/mkdocs.yml --push --allow-empty latest", pty=True)
