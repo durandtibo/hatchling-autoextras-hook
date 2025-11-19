@@ -7,13 +7,30 @@ only-include = ["src"]
 
 [project]
 name = "hatchling-autoextras-hook"
-version = "0.0.2a0"
+version = "0.0.2"
 description = "Hatchling metadata hook to generate all extras"
 readme = "README.md"
 authors = [
     { name = "Thibaut Durand", email = "durand.tibo+gh@gmail.com" },
 ]
+keywords = [ "hatchling", "automation", "metadata", "hook", "optional-dependencies" ]
 license = "BSD-3-Clause"
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries",
+]
 
 requires-python = ">=3.10"
 
