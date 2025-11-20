@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from hatchling_autoextras_hook.hooks import AutoExtrasMetadataHook
+from hatchling.metadata.plugin.interface import MetadataHookInterface
+
+from hatchling_autoextras_hook.hooks import (
+    AutoExtrasMetadataHook,
+    hatch_register_metadata_hook,
+)
 
 
 def test_plugin_name() -> None:
@@ -108,3 +113,13 @@ def test_update_sorts_dependencies() -> None:
         "mmm-package",
         "zzz-package",
     ]
+
+
+def test_hatch_register_metadata_hook_returns_correct_class() -> None:
+    """Ensure the plugin registration function returns the correct hook
+    class."""
+    hook_class = hatch_register_metadata_hook()
+    # The returned object must be a class
+    assert isinstance(hook_class, type)
+    assert hook_class is AutoExtrasMetadataHook
+    assert issubclass(hook_class, MetadataHookInterface)
