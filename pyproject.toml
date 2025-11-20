@@ -7,7 +7,7 @@ only-include = ["src"]
 
 [project]
 name = "hatchling-autoextras-hook"
-version = "0.0.2"
+version = "0.0.3a0"
 description = "Hatchling metadata hook to generate all extras"
 readme = "README.md"
 authors = [
