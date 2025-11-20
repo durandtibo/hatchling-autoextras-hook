@@ -59,9 +59,10 @@ dependencies.
 
 ## Overview
 
-This package provides a Hatchling metadata hook that automatically creates an `all` extra in your
-project's optional dependencies. The `all` extra will contain all dependencies from all other
-extras, making it easy for users to install all optional features at once.
+This package provides a [Hatchling](https://pypi.org/project/hatchling/) metadata hook that
+automatically creates an `all` extra in your project's optional dependencies.
+The `all` extra will contain all dependencies from all other extras, making it easy for users to
+install all optional features at once.
 
 ## Installation
 
@@ -101,6 +102,10 @@ Then add `__version__ = "x.y.z"` to your `__init__.py` file.
 Given this configuration:
 
 ```toml
+[build-system]
+requires = ["hatchling>=1.18.0", "hatchling-autoextras-hook"]
+build-backend = "hatchling.build"
+
 [project]
 name = "my-package"
 dynamic = ["version"]
@@ -147,29 +152,34 @@ pip install your-package[all]
 
 This project uses `uv` for dependency management.
 
-### Setup
-
-```bash
-# Install uv
-pip install uv
-
-# Install dependencies
-uv sync
-```
-
-### Running Tests
-
-```bash
-uv run pytest
-```
-
 ### Dependencies
 
 | `batcharray` | `hatchling`   | `python`       |
 |--------------|---------------|----------------|
 | `main`       | `>=1.18,<2.0` | `>=3.10,<3.15` |
+| `0.0.2`      | `>=1.18,<2.0` | `>=3.10,<3.15` |
 | `0.0.1`      | `>=1.18,<2.0` | `>=3.10,<3.15` |
+
+## Contributing
+
+Please check the instructions in [CONTRIBUTING.md](.github/CONTRIBUTING.md).
+
+## Suggestions and Communication
+
+Everyone is welcome to contribute to the community.
+If you have any questions or suggestions, you can
+submit [Github Issues](https://github.com/durandtibo/hatchling-autoextras-hook/issues).
+We will reply to you as soon as possible. Thank you very much.
+
+## API stability
+
+:warning: While `hatchling-autoextras-hook` is in development stage, no API is guaranteed to be
+stable from one release to the next.
+In fact, it is very likely that the API will change multiple times before a stable 1.0.0 release.
+In practice, this means that upgrading `hatchling-autoextras-hook` to a new version will possibly
+break any code that was using the old version of `hatchling-autoextras-hook`.
 
 ## License
 
-See LICENSE file for details.
+`hatchling-autoextras-hook` is licensed under BSD 3-Clause "New" or "Revised" license available
+in [LICENSE](LICENSE) file.
