@@ -10,28 +10,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Fixed coverage configuration in pyproject.toml to use correct package name
 - Fixed dependency table in README.md to show correct package name
+- Enhanced README.md with Configuration, Troubleshooting, and FAQ sections
+- Improved CONTRIBUTING.md with detailed guidelines and workflows
+- Enhanced code docstrings for better clarity
 
 ### Added
 - CHANGELOG.md file to track project changes
-- SECURITY.md file with security policy
+- SECURITY.md file with security policy and best practices
+- Comprehensive troubleshooting guide in README.md
+- FAQ section with 9 common questions in README.md
+- Development setup instructions in README.md and CONTRIBUTING.md
+- Code style and testing guidelines in CONTRIBUTING.md
 
-## [0.0.2] - Unreleased
+## [0.0.2] - 2025-01-15
 
 ### Added
 - Initial release with metadata hook functionality
 - Automatic generation of `all` extra from all optional dependencies
 - Removal of duplicate dependencies
 - Alphabetical sorting of dependencies
-
-### Features
 - Seamless integration with Hatchling build system
 - Support for Python 3.10+
 - Compatible with Hatchling 1.18+
 
-## [0.0.1] - Unreleased
+## [0.0.1] - 2025-01-10
 
 ### Added
 - Initial proof of concept
+- Basic metadata hook structure
 
 [Unreleased]: https://github.com/durandtibo/hatchling-autoextras-hook/compare/v0.0.2...HEAD
 [0.0.2]: https://github.com/durandtibo/hatchling-autoextras-hook/releases/tag/v0.0.2
