@@ -147,6 +147,117 @@ pip install your-package[all]
 - Removes duplicates across extras
 - Sorts dependencies alphabetically for consistency
 - Works seamlessly with the Hatchling build system
+- Zero configuration required - just enable the hook
+- Compatible with all Hatchling build targets (wheel, sdist)
+
+## Configuration
+
+The hook requires minimal configuration. Simply add it to your `pyproject.toml`:
+
+```toml
+[tool.hatch.metadata.hooks.autoextras]
+```
+
+Currently, the hook does not support any additional configuration options. It automatically:
+- Creates an `all` extra containing all dependencies from all other extras
+- Excludes any pre-existing `all` extra from being included in the new `all` extra
+- Maintains all original extras unchanged
+
+## Advanced Usage
+
+### Excluding the Hook from Certain Extras
+
+If you want to manually manage your `all` extra or prevent certain extras from being included, 
+you can work around this by using a different extra name (like `all-deps`) and then creating 
+your own `all` extra manually.
+
+### Using with Other Metadata Hooks
+
+This hook is compatible with other Hatchling metadata hooks. They will run in the order 
+specified in your configuration.
+
+## Troubleshooting
+
+### Hook Not Triggering
+
+**Problem**: The `all` extra is not being generated.
+
+**Solutions**:
+1. Ensure you have at least one dynamic field in your `[project]` section:
+   ```toml
+   [project]
+   dynamic = ["version"]
+   ```
+   Hatchling metadata hooks only run when there are dynamic fields.
+
+2. Verify the hook is properly registered in your `[build-system]`:
+   ```toml
+   [build-system]
+   requires = ["hatchling>=1.18.0", "hatchling-autoextras-hook"]
+   ```
+
+3. Check that the hook configuration exists:
+   ```toml
+   [tool.hatch.metadata.hooks.autoextras]
+   ```
+
+### `all` Extra Missing Dependencies
+
+**Problem**: Some dependencies are missing from the generated `all` extra.
+
+**Solution**: Ensure all your extras are defined in `[project.optional-dependencies]`. 
+The hook only processes extras defined there.
+
+### Build Failures
+
+**Problem**: Build fails with errors related to the hook.
+
+**Solutions**:
+1. Verify you're using Hatchling >= 1.18.0
+2. Check that your `pyproject.toml` syntax is correct
+3. Try building with verbose output: `python -m build -v`
+
+## FAQ
+
+### Q: Will this hook override my manually defined `all` extra?
+
+**A:** Yes, if you have a manually defined `all` extra in your `[project.optional-dependencies]`, 
+it will be replaced with the auto-generated one. The hook regenerates the `all` extra from all 
+other extras each time the build runs.
+
+### Q: Can I exclude specific extras from being included in `all`?
+
+**A:** Not currently. The hook includes all extras by default. If you need this functionality, 
+please open a feature request on GitHub.
+
+### Q: Does this work with dependency groups (PEP 735)?
+
+**A:** This hook specifically works with optional dependencies defined in 
+`[project.optional-dependencies]`. It does not process dependency groups defined in 
+`[dependency-groups]` as those are not part of the package metadata.
+
+### Q: Will this slow down my build process?
+
+**A:** No, the performance impact is negligible. The hook simply collects and sorts dependency 
+strings, which is a fast operation even for projects with many extras.
+
+### Q: Can I use this with Poetry or PDM?
+
+**A:** This hook is specifically designed for Hatchling. It won't work with Poetry or PDM's 
+build systems. Those tools have their own mechanisms for managing extras.
+
+### Q: How do I verify the hook is working?
+
+**A:** Build your package and inspect the generated wheel's metadata:
+```bash
+python -m build
+unzip -p dist/your_package-*.whl '*/METADATA' | grep -A 10 "Provides-Extra: all"
+```
+
+### Q: Does this hook modify my source files?
+
+**A:** No, the hook only modifies the package metadata during the build process. Your source 
+files, including `pyproject.toml`, remain unchanged.
 
 ## Development
 
@@ -154,11 +265,38 @@ This project uses `uv` for dependency management.
 
 ### Dependencies
 
-| `batcharray` | `hatchling`   | `python`       |
-|--------------|---------------|----------------|
-| `main`       | `>=1.18,<2.0` | `>=3.10,<3.15` |
-| `0.0.2`      | `>=1.18,<2.0` | `>=3.10,<3.15` |
-| `0.0.1`      | `>=1.18,<2.0` | `>=3.10,<3.15` |
+| `hatchling-autoextras-hook` | `hatchling`   | `python`       |
+|-----------------------------|---------------|----------------|
+| `main`                      | `>=1.18,<2.0` | `>=3.10,<3.15` |
+| `0.0.2`                     | `>=1.18,<2.0` | `>=3.10,<3.15` |
+| `0.0.1`                     | `>=1.18,<2.0` | `>=3.10,<3.15` |
+
+### Setting Up Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/durandtibo/hatchling-autoextras-hook.git
+cd hatchling-autoextras-hook
+
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create a virtual environment and install dependencies
+make setup-venv
+
+# Activate the virtual environment
+source .venv/bin/activate
+
+# Run tests
+make unit-test
+make integration-test
+
+# Run linting
+make lint
+
+# Format code
+make format
+```
 
 ## Contributing
 
@@ -178,6 +316,15 @@ stable from one release to the next.
 In fact, it is very likely that the API will change multiple times before a stable 1.0.0 release.
 In practice, this means that upgrading `hatchling-autoextras-hook` to a new version will possibly
 break any code that was using the old version of `hatchling-autoextras-hook`.
+
+## Security
+
+For information about security policies and how to report vulnerabilities, please see our 
+[Security Policy](SECURITY.md).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a history of changes to this project.
 
 ## License
 
