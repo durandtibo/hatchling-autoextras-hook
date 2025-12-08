@@ -35,8 +35,18 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
     def update(self, metadata: dict) -> None:
         """Update the project metadata to add the 'all' extra.
 
+        This method collects all dependencies from all optional extras
+        (excluding any existing 'all' extra), removes duplicates, sorts
+        them alphabetically, and creates/updates the 'all' extra with
+        the combined list.
+
         Args:
-            metadata: The project metadata dictionary to update.
+            metadata: The project metadata dictionary to update. This
+                dictionary is modified in place.
+
+        Note:
+            If no optional dependencies exist, this method does nothing.
+            Any pre-existing 'all' extra will be completely replaced.
         """
         # Get optional dependencies
         optional_dependencies = metadata.get("optional-dependencies", {})
@@ -60,5 +70,13 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
 @hookimpl
 def hatch_register_metadata_hook() -> type[MetadataHookInterface]:
-    """Register the autoextras metadata hook with hatchling."""
+    """Register the autoextras metadata hook with hatchling.
+
+    This function is called by Hatchling's plugin system to register
+    the AutoExtrasMetadataHook as a metadata hook plugin.
+
+    Returns:
+        The AutoExtrasMetadataHook class that implements the metadata
+        hook interface.
+    """
     return AutoExtrasMetadataHook
