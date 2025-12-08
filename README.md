@@ -265,11 +265,11 @@ This project uses `uv` for dependency management.
 
 ### Dependencies
 
-| `hatchling-autoextras-hook` | `hatchling`   | `python`       |
-|-----------------------------|---------------|----------------|
-| `main`                      | `>=1.18,<2.0` | `>=3.10,<3.15` |
-| `0.0.2`                     | `>=1.18,<2.0` | `>=3.10,<3.15` |
-| `0.0.1`                     | `>=1.18,<2.0` | `>=3.10,<3.15` |
+| `hatchling-autoextras-hook` | `hatchling`   | `python` |
+|-----------------------------|---------------|----------|
+| `main`                      | `>=1.18,<2.0` | `>=3.10` |
+| `0.0.2`                     | `>=1.18,<2.0` | `>=3.10` |
+| `0.0.1`                     | `>=1.18,<2.0` | `>=3.10` |
 
 ### Setting Up Development Environment
 
