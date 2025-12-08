@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CHANGELOG.md file to track project changes
 - SECURITY.md file with security policy
 
-## [0.0.2] - 2025-01-XX
+## [0.0.2] - TBD
 
 ### Added
 - Initial release with metadata hook functionality
@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for Python 3.10+
 - Compatible with Hatchling 1.18+
 
-## [0.0.1] - 2025-01-XX
+## [0.0.1] - TBD
 
 ### Added
 - Initial proof of concept
