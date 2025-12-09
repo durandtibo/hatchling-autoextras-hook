@@ -2,8 +2,14 @@
 requires = ["hatchling >= 1.27"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+sources = ["src"]
+
 [tool.hatch.build.targets.sdist]
 only-include = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["objectory"]
 
 [project]
 name = "hatchling-autoextras-hook"
@@ -15,6 +21,8 @@ authors = [
 ]
 keywords = [ "hatchling", "automation", "metadata", "hook", "optional-dependencies" ]
 license = "BSD-3-Clause"
+
+dynamic = ["maintainers"]
 
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -33,7 +41,6 @@ classifiers = [
 ]
 
 requires-python = ">=3.10"
-
 dependencies = [
     "hatchling>=1.18,<2.0",
 ]
@@ -45,21 +52,17 @@ autoextras = "hatchling_autoextras_hook.hooks"
 dev = [
     "black >=25.12",
     "coverage[toml] >=7.11,<8.0",
+    "docformatter[tomli] >=1.7,<2.0 ; python_version < '3.14'",
     "feu[all] >=0.5.0,<1.0",
     "invoke >=2.2.0,<3.0",
     "pre-commit >=4.4,<5.0",
     "pygments >=2.19,<3.0",
+    "pyright >=1.1.407,<2.0",
     "pytest >=9.0,<10.0",
     "pytest-cov >=7.0,<8.0",
     "pytest-timeout >=2.4,<3.0",
     "ruff >=0.14,<1.0",
     "xdoctest >=1.3,<2.0",
-]
-
-docs = [
-    "mike >=2.1,<3.0",
-    "mkdocs-material >=9.7,<10.0",
-    "mkdocstrings[python]>=1.0,<2.0",
 ]
 
 [project.urls]
@@ -75,7 +78,7 @@ source = ["src", "*/site-packages"]
 
 [tool.coverage.run]
 branch = true
-source = ["batchtensor"]
+source = ["hatchling_autoextras_hook"]
 
 [tool.coverage.report]
 show_missing = true
@@ -86,6 +89,7 @@ exclude_lines = [
 
 [tool.pytest]
 minversion = "9.0"
+pythonpath = ["src"]
 testpaths = ["tests/"]
 log_format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
 log_level = "DEBUG"
