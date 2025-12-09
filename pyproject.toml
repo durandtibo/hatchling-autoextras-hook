@@ -9,7 +9,7 @@ sources = ["src"]
 only-include = ["src"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["objectory"]
+packages = ["hatchling_autoextras_hook"]
 
 [project]
 name = "hatchling-autoextras-hook"

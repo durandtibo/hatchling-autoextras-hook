@@ -10,6 +10,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      max-parallel: 8
+      fail-fast: false
+      matrix:
+        dist-type: [ sdist, wheel ]
+        extra: [ '' ]
 
     steps:
       - name: Checkout
@@ -25,19 +31,54 @@ jobs:
         run: |
           uv build
 
-      - name: Install package
+      - name: Locate target distribution
+        id: dist
         run: |
-          uv pip install dist/*.whl
+          if [ "${{ matrix.dist-type }}" = "wheel" ]; then
+            TARGET=$(ls dist/*.whl | head -n1)
+          else
+            TARGET=$(ls dist/*.tar.gz | head -n1)
+          fi
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
 
-      - name: Inspect package
+      - name: Check py.typed in distribution
         run: |
-          uv pip show hatchling_autoextras_hook
+          if [ "${{ matrix.dist-type }}" = "wheel" ]; then
+            unzip -l "${{ steps.dist.outputs.target }}" | grep py.typed
+          else
+            tar -tzf "${{ steps.dist.outputs.target }}" | grep py.typed
+          fi
 
-      - name: Show dependency tree
-        shell: bash
+      - name: Install built package
         run: |
-          uv pip tree --package hatchling_autoextras_hook --show-version-specifiers
+          PKG="${{ steps.dist.outputs.target }}"
+          if [ -n "${{ matrix.extra }}" ]; then
+            PKG="${PKG}[${{ matrix.extra }}]"
+          fi
+          uv pip install "$PKG"
+
+      - name: Check build with twine
+        run: |
+          uv pip install twine
+          twine check dist/*
+
+      - name: Check package metadata
+        run: |
+          dev/package/check_metadata.sh
+
+      - name: Check dependency tree
+        run: |
+          dev/package/check_dependency_tree.sh
 
       - name: Import package
         run: |
-          python -c "import hatchling_autoextras_hook; print('OK')"
+          python -c "import hatchling_autoextras_hook; print(hatchling_autoextras_hook.__version__)"
+
+      - name: Check package version
+        run: |
+          python -c "import hatchling_autoextras_hook; assert hatchling_autoextras_hook.__version__ != '0.0.0'"
+
+      - name: Check that pyright recognizes the package as typed
+        run: |
+          uv pip install pyright
+          dev/package/check_type.sh
