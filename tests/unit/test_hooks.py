@@ -17,7 +17,7 @@ def test_update_with_no_optional_dependencies() -> None:
     """Test that update does nothing when there are no optional
     dependencies."""
     metadata = {}
-    AutoExtrasMetadataHook("test", {}).update(metadata)
+    AutoExtrasMetadataHook(root="test", config={}).update(metadata)
     assert metadata == {}
 
 
@@ -25,7 +25,7 @@ def test_update_with_empty_optional_dependencies() -> None:
     """Test that update does nothing when optional dependencies is
     empty."""
     metadata = {"optional-dependencies": {}}
-    AutoExtrasMetadataHook("test", {}).update(metadata)
+    AutoExtrasMetadataHook(root="test", config={}).update(metadata)
     assert metadata == {"optional-dependencies": {}}
 
 
@@ -37,7 +37,7 @@ def test_update_with_single_extra() -> None:
             "dev": ["pytest>=7.0", "black>=22.0"],
         }
     }
-    AutoExtrasMetadataHook("test", {}).update(metadata)
+    AutoExtrasMetadataHook(root="test", config={}).update(metadata)
     assert "all" in metadata["optional-dependencies"]
     assert set(metadata["optional-dependencies"]["all"]) == {
         "pytest>=7.0",
@@ -54,7 +54,7 @@ def test_update_with_multiple_extras() -> None:
             "typing": ["mypy>=1.0"],
         }
     }
-    AutoExtrasMetadataHook("test", {}).update(metadata)
+    AutoExtrasMetadataHook(root="test", config={}).update(metadata)
     assert "all" in metadata["optional-dependencies"]
     expected = {
         "pytest>=7.0",
@@ -74,7 +74,7 @@ def test_update_with_duplicate_dependencies() -> None:
             "test": ["pytest>=7.0", "coverage>=6.0"],
         }
     }
-    AutoExtrasMetadataHook("test", {}).update(metadata)
+    AutoExtrasMetadataHook(root="test", config={}).update(metadata)
     assert "all" in metadata["optional-dependencies"]
     # pytest should only appear once
     assert metadata["optional-dependencies"]["all"].count("pytest>=7.0") == 1
@@ -90,7 +90,7 @@ def test_update_preserves_existing_all_extra() -> None:
             "dev": ["pytest>=7.0", "black>=22.0"],
         }
     }
-    AutoExtrasMetadataHook("test", {}).update(metadata)
+    AutoExtrasMetadataHook(root="test", config={}).update(metadata)
     assert "all" in metadata["optional-dependencies"]
     # 'all' should be regenerated from 'dev', not include old-dependency
     assert "old-dependency" not in metadata["optional-dependencies"]["all"]
@@ -107,7 +107,7 @@ def test_update_sorts_dependencies() -> None:
             "dev": ["zzz-package", "aaa-package", "mmm-package"],
         }
     }
-    AutoExtrasMetadataHook("test", {}).update(metadata)
+    AutoExtrasMetadataHook(root="test", config={}).update(metadata)
     assert metadata["optional-dependencies"]["all"] == [
         "aaa-package",
         "mmm-package",

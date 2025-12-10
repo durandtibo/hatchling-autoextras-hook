@@ -1,4 +1,4 @@
-name: Documentation Tests
+name: Types
 on:
   workflow_call:
   workflow_dispatch:  # to trigger manually
@@ -7,10 +7,9 @@ permissions:
   contents: read
 
 jobs:
-  doctest:
+  types:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -18,6 +17,6 @@ jobs:
       - name: Setup python environment
         uses: ./.github/actions/setup-env
 
-      - name: Run doctest on source code
+      - name: Check types
         run: |
-          inv doctest-src
+          inv check-types

@@ -43,7 +43,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          inv integration-test
+          inv integration-test --cov
 
 
   min:
@@ -83,4 +83,4 @@ jobs:
 
       - name: Run integration tests
         run: |
-          inv integration-test
+          inv integration-test --cov

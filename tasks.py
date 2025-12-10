@@ -30,6 +30,12 @@ def check_lint(c: Context) -> None:
 
 
 @task
+def check_types(c: Context) -> None:
+    r"""Check code format."""
+    c.run("pyright src/", pty=True)
+
+
+@task
 def create_venv(c: Context) -> None:
     r"""Create a virtual environment."""
     c.run(f"uv venv --python {PYTHON_VERSION} --clear", pty=True)
@@ -55,18 +61,15 @@ def docformat(c: Context) -> None:
 
 
 @task
-def install(
-    c: Context, optional_deps: bool = True, dev_deps: bool = True, docs_deps: bool = False
-) -> None:
+def install(c: Context, optional_deps: bool = True, dev_deps: bool = True) -> None:
     r"""Install packages."""
     cmd = ["uv sync --frozen"]
     if optional_deps:
         cmd.append("--all-extras")
     if dev_deps:
         cmd.append("--group dev")
-    if docs_deps:
-        cmd.append("--group docs")
     c.run(" ".join(cmd), pty=True)
+    c.run("uv pip install -e .", pty=True)
 
 
 @task
@@ -75,7 +78,7 @@ def update(c: Context) -> None:
     c.run("uv sync --upgrade", pty=True)
     c.run("uv tool upgrade --all", pty=True)
     c.run("pre-commit autoupdate", pty=True)
-    install(c, docs_deps=True)
+    install(c)
 
 
 @task
@@ -133,31 +136,3 @@ def publish_pypi(c: Context) -> None:
         pty=True,
     )
     c.run("uv publish --token ${PYPI_TOKEN}", pty=True)
-
-
-@task
-def publish_doc_dev(c: Context) -> None:
-    r"""Publish development (e.g. unstable) docs."""
-    # delete previous version if it exists
-    c.run("mike delete --config-file docs/mkdocs.yml main", pty=True, warn=True)
-    c.run("mike deploy --config-file docs/mkdocs.yml --push --update-aliases main dev", pty=True)
-
-
-@task
-def publish_doc_latest(c: Context) -> None:
-    r"""Publish latest (e.g. stable) docs."""
-    from feu.git import get_last_version_tag_name  # noqa: PLC0415
-    from packaging.version import Version  # noqa: PLC0415
-
-    try:
-        version = Version(get_last_version_tag_name())
-        tag = f"{version.major}.{version.minor}"
-    except RuntimeError:
-        tag = "0.0"
-
-    # delete previous version if it exists
-    c.run(f"mike delete --config-file docs/mkdocs.yml {tag}", pty=True, warn=True)
-    c.run(
-        f"mike deploy --config-file docs/mkdocs.yml --push --update-aliases {tag} latest", pty=True
-    )
-    c.run("mike set-default --config-file docs/mkdocs.yml --push --allow-empty latest", pty=True)
