@@ -64,10 +64,10 @@ We actively welcome your pull requests.
    ```bash
    # Run unit tests
    inv unit-test --cov
-   
+
    # Run integration tests
    inv integration-test
-   
+
    # Run both with coverage report
    inv unit-test --cov && inv integration-test --cov
    ```
@@ -76,7 +76,7 @@ We actively welcome your pull requests.
    ```bash
    # Run pre-commit hooks
    pre-commit run --all-files
-   
+
    # Or run individual tools
    inv check-format  # Check formatting
    inv check-lint    # Check linting
@@ -159,7 +159,7 @@ We're here to help and appreciate your contributions!
 
 ## Code of Conduct
 
-This project adheres to a [Code of Conduct](../CODE_OF_CONDUCT.md). By participating, you are 
+This project adheres to a [Code of Conduct](../CODE_OF_CONDUCT.md). By participating, you are
 expected to uphold this code.
 
 ## License

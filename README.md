@@ -167,13 +167,13 @@ Currently, the hook does not support any additional configuration options. It au
 
 ### Excluding the Hook from Certain Extras
 
-If you want to manually manage your `all` extra or prevent certain extras from being included, 
-you can work around this by using a different extra name (like `all-deps`) and then creating 
+If you want to manually manage your `all` extra or prevent certain extras from being included,
+you can work around this by using a different extra name (like `all-deps`) and then creating
 your own `all` extra manually.
 
 ### Using with Other Metadata Hooks
 
-This hook is compatible with other Hatchling metadata hooks. They will run in the order 
+This hook is compatible with other Hatchling metadata hooks. They will run in the order
 specified in your configuration.
 
 ## Troubleshooting
@@ -205,7 +205,7 @@ specified in your configuration.
 
 **Problem**: Some dependencies are missing from the generated `all` extra.
 
-**Solution**: Ensure all your extras are defined in `[project.optional-dependencies]`. 
+**Solution**: Ensure all your extras are defined in `[project.optional-dependencies]`.
 The hook only processes extras defined there.
 
 ### Build Failures
@@ -221,29 +221,29 @@ The hook only processes extras defined there.
 
 ### Q: Will this hook override my manually defined `all` extra?
 
-**A:** Yes, if you have a manually defined `all` extra in your `[project.optional-dependencies]`, 
-it will be replaced with the auto-generated one. The hook regenerates the `all` extra from all 
+**A:** Yes, if you have a manually defined `all` extra in your `[project.optional-dependencies]`,
+it will be replaced with the auto-generated one. The hook regenerates the `all` extra from all
 other extras each time the build runs.
 
 ### Q: Can I exclude specific extras from being included in `all`?
 
-**A:** Not currently. The hook includes all extras by default. If you need this functionality, 
+**A:** Not currently. The hook includes all extras by default. If you need this functionality,
 please open a feature request on GitHub.
 
 ### Q: Does this work with dependency groups (PEP 735)?
 
-**A:** This hook specifically works with optional dependencies defined in 
-`[project.optional-dependencies]`. It does not process dependency groups defined in 
+**A:** This hook specifically works with optional dependencies defined in
+`[project.optional-dependencies]`. It does not process dependency groups defined in
 `[dependency-groups]` as those are not part of the package metadata.
 
 ### Q: Will this slow down my build process?
 
-**A:** No, the performance impact is negligible. The hook simply collects and sorts dependency 
+**A:** No, the performance impact is negligible. The hook simply collects and sorts dependency
 strings, which is a fast operation even for projects with many extras.
 
 ### Q: Can I use this with Poetry or PDM?
 
-**A:** This hook is specifically designed for Hatchling. It won't work with Poetry or PDM's 
+**A:** This hook is specifically designed for Hatchling. It won't work with Poetry or PDM's
 build systems. Those tools have their own mechanisms for managing extras.
 
 ### Q: How do I verify the hook is working?
@@ -256,7 +256,7 @@ unzip -p dist/your_package-*.whl '*/METADATA' | grep -A 10 "Provides-Extra: all"
 
 ### Q: Does this hook modify my source files?
 
-**A:** No, the hook only modifies the package metadata during the build process. Your source 
+**A:** No, the hook only modifies the package metadata during the build process. Your source
 files, including `pyproject.toml`, remain unchanged.
 
 ## Development
@@ -292,7 +292,7 @@ break any code that was using the old version of `hatchling-autoextras-hook`.
 
 ## Security
 
-For information about security policies and how to report vulnerabilities, please see our 
+For information about security policies and how to report vulnerabilities, please see our
 [Security Policy](SECURITY.md).
 
 ## License
