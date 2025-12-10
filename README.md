@@ -265,38 +265,11 @@ This project uses `uv` for dependency management.
 
 ### Dependencies
 
-| `hatchling-autoextras-hook` | `hatchling` (build) | `hatchling` (runtime) | `python` |
-|-----------------------------|---------------------|-----------------------|----------|
-| `main`                      | `>=1.27`            | `>=1.18,<2.0`         | `>=3.10` |
-| `0.0.2`                     | `>=1.27`            | `>=1.18,<2.0`         | `>=3.10` |
-| `0.0.1`                     | `>=1.27`            | `>=1.18,<2.0`         | `>=3.10` |
-
-### Setting Up Development Environment
-
-```bash
-# Clone the repository
-git clone https://github.com/durandtibo/hatchling-autoextras-hook.git
-cd hatchling-autoextras-hook
-
-# Install uv if you haven't already
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Create a virtual environment and install dependencies
-make setup-venv
-
-# Activate the virtual environment
-source .venv/bin/activate
-
-# Run tests
-make unit-test
-make integration-test
-
-# Run linting
-make lint
-
-# Format code
-make format
-```
+| `hatchling-autoextras-hook` | `hatchling` (runtime) | `python` |
+|-----------------------------|------------------------|----------|
+| `main`                      | `>=1.18,<2.0`          | `>=3.10` |
+| `0.0.2`                     | `>=1.18,<2.0`          | `>=3.10` |
+| `0.0.1`                     | `>=1.18,<2.0`          | `>=3.10` |
 
 ## Contributing
 
@@ -321,10 +294,6 @@ break any code that was using the old version of `hatchling-autoextras-hook`.
 
 For information about security policies and how to report vulnerabilities, please see our 
 [Security Policy](SECURITY.md).
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for a history of changes to this project.
 
 ## License
 
