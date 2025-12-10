@@ -33,8 +33,7 @@ Before you start contributing, set up your development environment:
 git clone https://github.com/YOUR_USERNAME/hatchling-autoextras-hook.git
 cd hatchling-autoextras-hook
 
-# Install uv if you don't have it
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install uv if you don't have it (see https://docs.astral.sh/uv/getting-started/installation/)
 
 # Set up the development environment
 make setup-venv
