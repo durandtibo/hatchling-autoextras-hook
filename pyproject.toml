@@ -8,9 +8,6 @@ sources = ["src"]
 [tool.hatch.build.targets.sdist]
 only-include = ["src"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/hatchling_autoextras_hook"]
-
 [project]
 name = "hatchling-autoextras-hook"
 version = "0.0.3a0"

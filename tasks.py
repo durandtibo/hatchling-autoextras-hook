@@ -69,6 +69,7 @@ def install(c: Context, optional_deps: bool = True, dev_deps: bool = True) -> No
     if dev_deps:
         cmd.append("--group dev")
     c.run(" ".join(cmd), pty=True)
+    c.run("uv pip install -e .", pty=True)
 
 
 @task
