@@ -152,6 +152,7 @@ The hook requires minimal configuration. Simply add it to your `pyproject.toml`:
 ```
 
 Currently, the hook does not support any additional configuration options. It automatically:
+
 - Creates an `all` extra containing all dependencies from all other extras
 - Excludes any pre-existing `all` extra from being included in the new `all` extra
 - Maintains all original extras unchanged
@@ -176,6 +177,7 @@ specified in your configuration.
 **Problem**: The `all` extra is not being generated.
 
 **Solutions**:
+
 1. Ensure you have at least one dynamic field in your `[project]` section:
    ```toml
    [project]
@@ -206,6 +208,7 @@ The hook only processes extras defined there.
 **Problem**: Build fails with errors related to the hook.
 
 **Solutions**:
+
 1. Verify you're using Hatchling >= 1.18.0
 2. Check that your `pyproject.toml` syntax is correct
 3. Try building with verbose output: `python -m build -v`
@@ -242,6 +245,7 @@ build systems. Those tools have their own mechanisms for managing extras.
 ### Q: How do I verify the hook is working?
 
 **A:** Build your package and inspect the generated wheel's metadata:
+
 ```bash
 python -m build
 unzip -p dist/your_package-*.whl '*/METADATA' | grep -A 10 "Provides-Extra: all"
@@ -260,7 +264,8 @@ This project uses `uv` for dependency management.
 
 | `batcharray` | `hatchling`   | `python`       |
 |--------------|---------------|----------------|
-| `main`       | `>=1.18,<2.0` | `>=3.10` |
+| `main`       | `>=1.18,<2.0` | `>=3.10`       |
+| `0.1.0`      | `>=1.18,<2.0` | `>=3.10`       |
 | `0.0.2`      | `>=1.18,<2.0` | `>=3.10,<3.15` |
 | `0.0.1`      | `>=1.18,<2.0` | `>=3.10,<3.15` |
 
