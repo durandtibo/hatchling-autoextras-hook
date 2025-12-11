@@ -23,7 +23,8 @@ jobs:
       - name: Read versions
         id: extract
         run: |
-          echo "versions=$(cat dev/config/package_versions.json)" >> $GITHUB_OUTPUT
+          path="dev/config/package_versions.json"
+          echo "versions=$(jq -Rs . $path)" >> $GITHUB_OUTPUT
 
       - name: Show versions
         run: |

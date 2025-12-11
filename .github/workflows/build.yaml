@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       max-parallel: 8
@@ -35,9 +35,9 @@ jobs:
         id: dist
         run: |
           if [ "${{ matrix.dist-type }}" = "wheel" ]; then
-            TARGET=$(ls dist/*.whl | head -n1)
+            TARGET=$(find dist -maxdepth 1 -name "*.whl" | head -n1)
           else
-            TARGET=$(ls dist/*.tar.gz | head -n1)
+            TARGET=$(find dist -maxdepth 1 -name "*.tar.gz" | head -n1)
           fi
           echo "target=$TARGET" >> "$GITHUB_OUTPUT"
 
