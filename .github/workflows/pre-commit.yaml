@@ -14,8 +14,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup python environment
-        uses: ./.github/actions/setup-env
+#      - name: Setup python environment
+#        uses: ./.github/actions/setup-env
+
+      # Install uv package manager and activate Python environment
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ inputs.python-version }}
+          activate-environment: true
+
+      # Install invoke task runner for development commands
+      - name: Install invoke
+        shell: bash
+        run: |
+          make install-invoke
+
+      # Install project dependencies (with optional arguments like --docs-deps, --no-optional-deps)
+      - name: Install dependencies
+        shell: bash
+        run: |
+          inv install
+
+      # Display dependency tree with version specifiers
+      - name: Show dependency tree
+        shell: bash
+        run: |
+          uv pip tree --show-version-specifiers
+
+      # Verify environment integrity (continue even if there are conflicts)
+      - name: Verify the current environment
+        shell: bash
+        continue-on-error: true
+        run: |
+          uv pip check
 
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
