@@ -24,7 +24,7 @@ jobs:
         id: extract
         run: |
           filepath="dev/config/package_versions.json"
-          echo "versions=$(cat "$filepath")" >> "$GITHUB_OUTPUT"
+          echo "versions=$(cat "$filepath" | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
 
       - name: Show versions
         run: |
