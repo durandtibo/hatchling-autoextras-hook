@@ -10,7 +10,7 @@ only-include = ["src"]
 
 [project]
 name = "hatchling-autoextras-hook"
-version = "0.1.0"
+version = "0.1.1a0"
 description = "Hatchling metadata hook to generate all extras"
 readme = "README.md"
 authors = [
@@ -269,3 +269,14 @@ max-doc-length = 72
 force-sort-within-sections = true
 combine-as-imports = true
 known-first-party = ["src"]
+
+[tool.pyright]
+include = ["src"]
+extraPaths = ["src"]
+exclude = [
+    "tests",
+    "build",
+    ".venv",
+]
+venvPath = "."
+venv = ".venv"
