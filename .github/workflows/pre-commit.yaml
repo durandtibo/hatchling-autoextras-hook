@@ -14,17 +14,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup python environment
-        uses: ./.github/actions/setup-env
-
-      #      - name: Ensure uv pip is installed
-      #        run: |
-      #          uv pip install --upgrade pip
-
-      # Create an alias to link 'pip' to 'uv pip'
-      - name: Link pip to uv pip
-        run: |
-          echo 'alias pip="uv pip"' >> $GITHUB_ENV
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
 
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
