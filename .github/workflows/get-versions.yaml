@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   get-versions:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
       package_versions: ${{ steps.extract.outputs.versions }}
