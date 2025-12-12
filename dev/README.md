@@ -48,7 +48,8 @@ Contains scripts for package validation and testing.
 These scripts are used by GitHub Actions workflows:
 
 - `generate_versions.py` is called by `.github/workflows/generate-package-versions.yaml`
-- Package check scripts are used in `.github/workflows/test-package*.yaml` workflows
+- Package check scripts are used in `.github/workflows/build.yaml`
+- The `.github/workflows/test-package*.yaml` workflows run `tests/package_checks.py` instead
 - `check_markdown.sh` is called during doctest workflow
 
 ## Requirements
