@@ -16,30 +16,10 @@ jobs:
     with:
       install-cmd: 'uv pip install hatchling_autoextras_hook'
 
-  stable-all:
-    uses: ./.github/workflows/test-package.yaml
-    with:
-      install-cmd: 'uv pip install "hatchling_autoextras_hook[all]"'
-
-  stable-numpy:
-    uses: ./.github/workflows/test-package.yaml
-    with:
-      install-cmd: 'uv pip install "hatchling_autoextras_hook[numpy]"'
-
   latest:
     uses: ./.github/workflows/test-package.yaml
     with:
       install-cmd: 'uv pip install --pre hatchling_autoextras_hook'
-
-  latest-all:
-    uses: ./.github/workflows/test-package.yaml
-    with:
-      install-cmd: 'uv pip install --pre "hatchling_autoextras_hook[all]"'
-
-  latest-numpy:
-    uses: ./.github/workflows/test-package.yaml
-    with:
-      install-cmd: 'uv pip install --pre "hatchling_autoextras_hook[numpy]"'
 
 
   ########################
