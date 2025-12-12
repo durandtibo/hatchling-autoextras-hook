@@ -1,9 +1,5 @@
 SHELL=/bin/bash
 
-.PHONY : conda
-conda :
-	conda env create -f environment.yaml --yes
-
 .PHONY : install
 install :
 	inv install --no-optional-deps

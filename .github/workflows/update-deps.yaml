@@ -20,7 +20,7 @@ jobs:
       - name: Setup python environment
         uses: durandtibo/setup-venv-uv-action@v0.0.1
 
-      - name: Install packages
+      - name: Update dependencies
         run: |
           inv update
 

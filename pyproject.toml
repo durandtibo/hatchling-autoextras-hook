@@ -67,9 +67,6 @@ homepage = "https://github.com/durandtibo/hatchling-autoextras-hook"
 repository = "https://github.com/durandtibo/hatchling-autoextras-hook"
 documentation = "https://durandtibo.github.io/hatchling-autoextras-hook/"
 
-[tool.uv.pip]
-torch-backend = "auto"
-
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
 
@@ -84,7 +81,7 @@ exclude_lines = [
     "if TYPE_CHECKING:"
 ]
 
-[tool.pytest]
+[tool.pytest.ini_options]
 minversion = "9.0"
 pythonpath = ["src"]
 testpaths = ["tests/"]
