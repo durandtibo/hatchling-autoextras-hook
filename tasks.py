@@ -65,7 +65,7 @@ def doctest_src(c: Context) -> None:
 
     This function performs two types of validation:
     1. Runs doctests on Python source code files using xdoctest
-    2. Validates code examples embedded in markdown files using Python's doctest
+    2. Validates code examples embedded in markdown files via doctest
 
     Args:
         c: The invoke context.

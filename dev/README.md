@@ -148,7 +148,7 @@ Runs custom package validation checks as a standalone Python script.
 
 **Purpose:**
 - Executes project-specific validation not covered by standard checks
-- Runs `tests/package_checks.py` as a standalone Python script (not pytest)
+- Runs `tests/package_checks.py` as a standalone Python script
 - Validates package installation and basic functionality
 - Checks that the package can be imported and instantiated correctly
 - Verifies the package version is set correctly
