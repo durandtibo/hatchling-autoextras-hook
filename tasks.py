@@ -61,7 +61,11 @@ def create_venv(c: Context) -> None:
 
 @task
 def doctest_src(c: Context) -> None:
-    r"""Run doctests on source code and markdown files.
+    r"""Run doctests on source code and validate markdown code examples.
+
+    This function performs two types of validation:
+    1. Runs doctests on Python source code files using xdoctest
+    2. Validates code examples embedded in markdown files using Python's doctest
 
     Args:
         c: The invoke context.
