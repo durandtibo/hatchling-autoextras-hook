@@ -31,7 +31,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Create pyright test file that imports and instantiates the hook
+# Create pyright test file that imports the hook and creates an instance to verify typing
 cat >"$PYRIGHT_DIR/check_pyright_import.py" <<'EOF'
 from hatchling_autoextras_hook import AutoExtrasMetadataHook
 
