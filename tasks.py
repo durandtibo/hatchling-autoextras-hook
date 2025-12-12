@@ -29,13 +29,21 @@ def check_format(c: Context) -> None:
 
 @task
 def check_lint(c: Context) -> None:
-    r"""Check code linting with ruff."""
+    r"""Check code linting with ruff.
+
+    Args:
+        c: The invoke context.
+    """
     c.run("ruff check --output-format=github .", pty=True)
 
 
 @task
 def check_types(c: Context) -> None:
-    r"""Check type hints with pyright."""
+    r"""Check type hints with pyright.
+
+    Args:
+        c: The invoke context.
+    """
     c.run("pyright .", pty=True)
 
 
@@ -53,14 +61,22 @@ def create_venv(c: Context) -> None:
 
 @task
 def doctest_src(c: Context) -> None:
-    r"""Run doctests on source code and markdown files."""
+    r"""Run doctests on source code and markdown files.
+
+    Args:
+        c: The invoke context.
+    """
     c.run(f"python -m pytest --xdoctest {SOURCE}", pty=True)
     c.run("dev/check_markdown.sh", pty=True)
 
 
 @task
 def docformat(c: Context) -> None:
-    r"""Format docstrings in source code."""
+    r"""Format docstrings in source code.
+
+    Args:
+        c: The invoke context.
+    """
     c.run(f"docformatter --config ./pyproject.toml --in-place {SOURCE}", pty=True)
 
 
@@ -84,7 +100,11 @@ def install(c: Context, optional_deps: bool = True, dev_deps: bool = True) -> No
 
 @task
 def update(c: Context) -> None:
-    r"""Update the dependencies and pre-commit hooks."""
+    r"""Update the dependencies and pre-commit hooks.
+
+    Args:
+        c: The invoke context.
+    """
     c.run("uv sync --upgrade", pty=True)
     c.run("uv tool upgrade --all", pty=True)
     c.run("pre-commit autoupdate", pty=True)
@@ -140,13 +160,21 @@ def integration_test(c: Context, cov: bool = False) -> None:
 
 @task
 def show_installed_packages(c: Context) -> None:
-    r"""Show the installed packages."""
+    r"""Show the installed packages.
+
+    Args:
+        c: The invoke context.
+    """
     c.run("uv pip list", pty=True)
 
 
 @task
 def show_python_config(c: Context) -> None:
-    r"""Show the python configuration."""
+    r"""Show the python configuration.
+
+    Args:
+        c: The invoke context.
+    """
     c.run("uv python list --only-installed", pty=True)
     c.run("uv python find", pty=True)
     c.run("which python", pty=True)
@@ -154,7 +182,11 @@ def show_python_config(c: Context) -> None:
 
 @task
 def publish_pypi(c: Context) -> None:
-    r"""Publish the package to PyPI."""
+    r"""Publish the package to PyPI.
+
+    Args:
+        c: The invoke context.
+    """
     c.run("uv build", pty=True)
     c.run(
         f'uv run --with {NAME} --refresh-package {NAME} --no-project -- python -c "import {NAME}"',
