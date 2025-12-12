@@ -15,10 +15,6 @@ logger = logging.getLogger(__name__)
 def get_package_versions() -> dict[str, list[str]]:
     r"""Get the latest minor versions for each package dependency.
 
-    This function retrieves the latest minor versions of hatchling
-    starting from version 1.18, which is the minimum required version
-    for this project.
-
     Returns:
         A dictionary mapping package names to lists of version strings.
         Currently only contains versions for "hatchling".
