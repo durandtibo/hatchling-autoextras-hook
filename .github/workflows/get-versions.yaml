@@ -28,8 +28,10 @@ jobs:
 
       - name: Read versions
         id: extract
+        env:
+          VERSIONS_JSON: ${{ steps.read-json.outputs.json-content }}
         run: |
-          echo "versions="${{ steps.read-json.outputs.json-content }}"" >> "$GITHUB_OUTPUT"
+          echo "versions=$VERSIONS_JSON" >> "$GITHUB_OUTPUT"
 
       - name: Show versions
         run: |
