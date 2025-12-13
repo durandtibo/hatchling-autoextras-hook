@@ -28,7 +28,7 @@ jobs:
     uses: ./.github/workflows/type-checking.yaml
   pre-commit:
     uses: ./.github/workflows/pre-commit.yaml
-#  test:
-#    uses: ./.github/workflows/test.yaml
+  test:
+    uses: ./.github/workflows/test.yaml
   test-deps:
     uses: ./.github/workflows/test-deps.yaml
