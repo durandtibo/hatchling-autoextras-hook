@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
-      package_versions: ${{ steps.generate-output.outputs.versions }}
+      package_versions: ${{ steps.read-json.outputs.json-content }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -26,13 +26,7 @@ jobs:
         with:
           file-path: dev/config/package_versions.json
 
-      - name: Generate versions output
-        id: generate-output
-        env:
-          VERSIONS_JSON: ${{ steps.read-json.outputs.json-content }}
-        run: |
-          echo "versions=$VERSIONS_JSON" >> "$GITHUB_OUTPUT"
-
       - name: Show versions
         run: |
-          echo "versions: ${{ toJson(fromJson(steps.generate-output.outputs.versions)) }}"
+          echo "Package versions:"
+          echo '${{ steps.read-json.outputs.json-content }}' | jq '.'
