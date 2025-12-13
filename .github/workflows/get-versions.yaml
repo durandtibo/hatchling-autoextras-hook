@@ -33,4 +33,4 @@ jobs:
 
       - name: Show versions
         run: |
-          echo "versions: ${{ toJson(fromJson(steps.extract.outputs.versions)) }}"
+          echo "versions: ${{ steps.extract.outputs.versions }}"
