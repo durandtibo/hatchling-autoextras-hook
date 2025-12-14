@@ -114,7 +114,6 @@ def format_shell(c: Context) -> None:
     else:
         logger.error("❌ Shell formatting failed")
         sys.exit(1)
-    logger.info("")
 
 
 @task
