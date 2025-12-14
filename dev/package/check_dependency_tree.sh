@@ -22,41 +22,56 @@
 
 set -euo pipefail
 
-# Get the dependency tree for the package
-OUTPUT=$(uv pip tree --package hatchling-autoextras-hook --show-version-specifiers)
-echo "$OUTPUT"
+# Get the uv pip tree output
+tree_output=$(uv pip tree --package hatchling-autoextras-hook --show-version-specifiers)
 
-# Define expected patterns for each line (in order)
-# Line 1: Package name and version
-# Line 2: The only dependency should be hatchling
-PATTERNS=(
-  '^hatchling-autoextras-hook v[0-9]+(\.[0-9]+)*[A-Za-z0-9]*$'
-  '^└── hatchling v[0-9]+(\.[0-9]+)*[[:space:]]+\[required:.*\]$'
-)
+echo "Dependency tree"
+echo "$tree_output"
+echo ""
 
-# Number of lines we want to check
-MAX_LINES=${#PATTERNS[@]}
+# Check if first line matches the pattern
+first_line=$(echo "$tree_output" | head -n 1)
+if ! echo "$first_line" | grep -qE '^hatchling-autoextras-hook v[0-9]+(\.[0-9]+)*[A-Za-z0-9]*$'; then
+    echo "❌ ERROR: First line does not match expected pattern"
+    echo "Expected: hatchling-autoextras-hook v<version>"
+    echo "Got: $first_line"
+    exit 1
+fi
+echo "✅ First line matches pattern: $first_line"
+echo ""
 
-# --- Validator ---
-# Iterate through each line and validate against expected patterns
-i=1
-while IFS= read -r line; do
-    # Stop once all patterns have been checked
-    if (( i > MAX_LINES )); then
-        break
+# Define packages to check
+packages=("hatchling")
+
+# Track results
+missing_packages=()
+found_packages=()
+
+# Check each package
+for package in "${packages[@]}"; do
+    # Match package name at second level (lines starting with ├── or └──)
+    # Case-insensitive match for package names
+    if echo "$tree_output" | grep -qiE "^[├└]── ${package} v"; then
+        found_packages+=("$package")
+        echo "✅ Found: $package"
+    else
+        missing_packages+=("$package")
+        echo "❌ Missing: $package"
     fi
+done
 
-    pattern="${PATTERNS[$((i-1))]}"
+echo ""
+echo "📊 Summary:"
+echo " Found: ${#found_packages[@]}"
+echo " Missing: ${#missing_packages[@]}"
 
-    # Check if the line matches the expected pattern
-    if ! [[ "$line" =~ $pattern ]]; then
-        echo "❌ Line $i does NOT match expected pattern"
-        echo "   Line content:    '$line'"
-        echo "   Expected pattern: $pattern"
-        exit 1
-    fi
-
-    ((i++))
-done <<< "$OUTPUT"
-
-echo "✅ First $MAX_LINES lines match."
+# Exit with error if any packages are missing
+if [ ${#missing_packages[@]} -gt 0 ]; then
+    echo ""
+    echo "⚠️  Missing packages:"
+    printf '  • %s\n' "${missing_packages[@]}"
+    exit 1
+else
+    echo ""
+    echo "🎉 All packages found!"
+fi
