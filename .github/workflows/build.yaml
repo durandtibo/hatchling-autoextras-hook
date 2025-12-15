@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       max-parallel: 8
@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Verify Build
-        uses: durandtibo/verify-uv-build-action@v0.0.4a0
+        uses: durandtibo/verify-uv-build-action@v0.0.4a1
         with:
           package-name: hatchling_autoextras_hook
           package-extra: ${{ matrix.package-extra }}
