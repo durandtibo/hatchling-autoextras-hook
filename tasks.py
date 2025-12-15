@@ -64,8 +64,15 @@ def check_types(c: Context) -> None:
     Args:
         c: The invoke context.
     """
+    logger.info("🔍 Checking for py.typed...")
+    c.run(
+        f'python -c "import {NAME}; import pathlib; '
+        f"print(pathlib.Path({NAME}.__file__).parent / 'py.typed')\"",
+        pty=True,
+    )
+    logger.info("✅ Found py.typed...\n")
     logger.info("🔬 Checking type hints with pyright...")
-    c.run(f"pyright {SOURCE}", pty=True)
+    c.run(f"pyright --verifytypes {NAME} --ignoreexternal", pty=True)
     logger.info("✅ Type check passed")
 
 

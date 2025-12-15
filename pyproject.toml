@@ -272,11 +272,6 @@ known-first-party = ["src"]
 
 [tool.pyright]
 include = ["src"]
-extraPaths = ["src"]
-exclude = [
-    "tests",
-    "build",
-    ".venv",
-]
 venvPath = "."
 venv = ".venv"
+typeCheckingMode = "strict"
