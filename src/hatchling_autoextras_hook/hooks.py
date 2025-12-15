@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from hatchling.metadata.plugin.interface import MetadataHookInterface
 from hatchling.plugin import hookimpl
 
@@ -30,9 +32,9 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
     ```
     """
 
-    PLUGIN_NAME = "autoextras"
+    PLUGIN_NAME: str = "autoextras"
 
-    def update(self, metadata: dict) -> None:
+    def update(self, metadata: dict[str, Any]) -> None:
         """Update the project metadata to add the 'all' extra.
 
         This method collects all dependencies from all optional extras
