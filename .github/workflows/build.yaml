@@ -15,17 +15,15 @@ jobs:
       fail-fast: false
       matrix:
         dist-type: [ "sdist", "wheel" ]
-        package-extra: [ "", "all" ]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Verify Build
-        uses: durandtibo/verify-uv-build-action@v0.0.4
+        uses: durandtibo/verify-uv-build-action@v0.0.7
         with:
           package-name: hatchling-autoextras-hook
-          package-extra: ${{ matrix.package-extra }}
           package-dependencies: hatchling
           dist-type: ${{ matrix.dist-type }}
 
