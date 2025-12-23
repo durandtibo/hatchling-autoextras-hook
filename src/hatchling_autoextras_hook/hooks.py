@@ -53,9 +53,6 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         # Get optional dependencies
         optional_dependencies = metadata.get("optional-dependencies", {})
 
-        if not optional_dependencies:
-            return
-
         # Collect all dependencies from all extras (except 'all' if it already exists)
         all_deps = set()
         for extra_name, deps in optional_dependencies.items():

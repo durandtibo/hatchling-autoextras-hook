@@ -18,7 +18,7 @@ def test_update_with_no_optional_dependencies() -> None:
     dependencies."""
     metadata = {}
     AutoExtrasMetadataHook(root="test", config={}).update(metadata)
-    assert metadata == {}
+    assert metadata == {"optional-dependencies": {"all": []}}
 
 
 def test_update_with_empty_optional_dependencies() -> None:
@@ -26,7 +26,7 @@ def test_update_with_empty_optional_dependencies() -> None:
     empty."""
     metadata = {"optional-dependencies": {}}
     AutoExtrasMetadataHook(root="test", config={}).update(metadata)
-    assert metadata == {"optional-dependencies": {}}
+    assert metadata == {"optional-dependencies": {"all": []}}
 
 
 def test_update_with_single_extra() -> None:
