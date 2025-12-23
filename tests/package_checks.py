@@ -12,7 +12,7 @@ def check_auto_extras_metadata_hook() -> None:
     logger.info("Checking AutoExtrasMetadataHook...")
     metadata = {}
     AutoExtrasMetadataHook("test", {}).update(metadata)
-    assert metadata == {}
+    assert metadata == {"optional-dependencies": {"all": []}}
 
 
 def check_version() -> None:
