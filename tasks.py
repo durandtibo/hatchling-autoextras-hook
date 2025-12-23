@@ -155,9 +155,7 @@ def format_shell(c: Context) -> None:
 
 
 @task
-def install(
-    c: Context, optional_deps: bool = True, dev_deps: bool = True, docs_deps: bool = False
-) -> None:
+def install(c: Context, optional_deps: bool = True, dev_deps: bool = True) -> None:
     r"""Install project dependencies and the package in editable mode.
 
     This task synchronizes dependencies from the lock file and installs the
@@ -169,8 +167,6 @@ def install(
             the project extras. Default is True.
         dev_deps: If True, install development dependencies (testing, linting,
             formatting tools). Default is True.
-        docs_deps: If True, install documentation generation dependencies
-            (mkdocs, themes, plugins). Default is False.
 
     Example:
         # Install with all dependencies except docs
@@ -178,9 +174,6 @@ def install(
 
         # Install only core and dev dependencies
         invoke install --no-optional-deps
-
-        # Install everything including docs dependencies
-        invoke install --docs-deps
     """
     logger.info("📦 Installing project dependencies...")
     cmd = ["uv sync --frozen"]
@@ -188,8 +181,6 @@ def install(
         cmd.append("--all-extras")
     if dev_deps:
         cmd.append("--group dev")
-    if docs_deps:
-        cmd.append("--group docs")
     c.run(" ".join(cmd), pty=True)
     logger.info("🔧 Installing package in editable mode...")
     c.run("uv pip install -e .", pty=True)
@@ -221,7 +212,7 @@ def update(c: Context) -> None:
     logger.info("🪝 Updating pre-commit hooks...")
     c.run("pre-commit autoupdate", pty=True)
     logger.info("📦 Reinstalling with docs dependencies...")
-    install(c, docs_deps=True)
+    install(c)
     logger.info("✅ Update complete")
 
 
