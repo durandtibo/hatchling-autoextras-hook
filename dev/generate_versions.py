@@ -7,19 +7,19 @@ import logging
 from pathlib import Path
 
 from feu.utils.io import save_json
-from feu.version import get_latest_minor_versions
+from feu.version import fetch_latest_minor_versions
 
 logger = logging.getLogger(__name__)
 
 
-def get_package_versions() -> dict[str, list[str]]:
+def fetch_package_versions() -> dict[str, list[str]]:
     r"""Get the latest minor versions for each package dependency.
 
     Returns:
         A dictionary mapping package names to lists of version strings.
         Currently only contains versions for "hatchling".
     """
-    return {"hatchling": list(get_latest_minor_versions("hatchling", lower="1.18"))}
+    return {"hatchling": list(fetch_latest_minor_versions("hatchling", lower="1.18"))}
 
 
 def main() -> None:
@@ -33,7 +33,7 @@ def main() -> None:
     The generated file is used by CI/CD workflows to test against
     multiple versions of dependencies.
     """
-    versions = get_package_versions()
+    versions = fetch_package_versions()
     logger.info(f"{versions=}")
     path = Path(__file__).parent.parent.joinpath("dev/config").joinpath("package_versions.json")
     logger.info(f"Saving package versions to {path}")
