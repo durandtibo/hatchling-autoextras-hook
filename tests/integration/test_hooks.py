@@ -10,21 +10,19 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def build_minimal_project(path: Path) -> None:
+def build_minimal_project(path: Path, config: str = "") -> None:
     r"""Create a minimal project.
 
     Args:
         path: The path where to build the minimal project.
     """
     path.joinpath("pyproject.toml").write_text(
-        """[build-system]
-requires = ["hatchling", "hatchling-autoextras-hook"]
+        f"""[build-system]
+requires = ["hatchling", "hatchling-autoextras-hook>=0.1.3a0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
 only-include = ["src"]
-
-[tool.hatch.metadata.hooks.autoextras]
 
 [project]
 name = "testpkg"
@@ -37,6 +35,9 @@ requires-python = ">=3.10"
 [project.optional-dependencies]
 numpy = [ "numpy>=2.0" ]
 dev = [ "pytest>=9.0" ]
+
+[tool.hatch.metadata.hooks.autoextras]
+{config}
 """,
         encoding="utf-8",
     )
@@ -81,15 +82,15 @@ def read_metadata(path: Path) -> str:
         return zf.read(metadata_files[0]).decode()
 
 
-def validate_metadata(metadata: str) -> None:
+def validate_metadata(metadata: str, group_name: str = "all") -> None:
     r"""Validate that the 'all' extra was automatically generated.
 
     Args:
         metadata: The content of the metadata file.
     """
-    assert "Provides-Extra: all" in metadata
-    assert "Requires-Dist: numpy>=2.0; extra == 'all'" in metadata
-    assert "Requires-Dist: pytest>=9.0; extra == 'all'" in metadata
+    assert f"Provides-Extra: {group_name}" in metadata
+    assert f"Requires-Dist: numpy>=2.0; extra == '{group_name}'" in metadata
+    assert f"Requires-Dist: pytest>=9.0; extra == '{group_name}'" in metadata
 
     # Also ensure original extras still exist
     assert "Provides-Extra: numpy" in metadata
@@ -123,6 +124,35 @@ def test_autoextras_integration(tmp_path: Path) -> None:
     # 5. Validate that the 'all' extra was automatically generated
     # ----------------------------------------------------------------------
     validate_metadata(metadata)
+
+
+def test_autoextras_integration_custom_name(tmp_path: Path) -> None:
+    r"""Build a temporary Python project using hatchling with the
+    autoextras plugin and verify that the generated wheel contains an
+    'all' extra that merges all optional dependencies."""
+    path = tmp_path.joinpath("project")
+    path.mkdir(exist_ok=True, parents=True)
+
+    # ----------------------------------------------------------------------
+    # 1. Create a minimal project that uses the autoextras metadata hook
+    # ----------------------------------------------------------------------
+    build_minimal_project(path, config='group-name = "complete"')
+    # ----------------------------------------------------------------------
+    # 2. Build the wheel using uv build
+    # ----------------------------------------------------------------------
+    subprocess.run(["uv", "build"], cwd=path, check=True)  # noqa: S607
+    # ----------------------------------------------------------------------
+    # 3. Find the generated wheel in dist/
+    # ----------------------------------------------------------------------
+    wheel_path = find_wheel_path(path)
+    # ----------------------------------------------------------------------
+    # 4. Inspect wheel metadata (METADATA file inside the .whl)
+    # ----------------------------------------------------------------------
+    metadata = read_metadata(wheel_path)
+    # ----------------------------------------------------------------------
+    # 5. Validate that the 'all' extra was automatically generated
+    # ----------------------------------------------------------------------
+    validate_metadata(metadata, group_name="complete")
 
 
 #######################################
