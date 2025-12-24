@@ -1,4 +1,4 @@
-"""Hatchling metadata hook to automatically generate 'all' extras."""
+r"""Hatchling metadata hook to automatically generate 'all' extras."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from hatchling.plugin import hookimpl
 
 
 class AutoExtrasMetadataHook(MetadataHookInterface):
-    """Metadata hook that automatically generates an 'all' extra.
+    r"""Metadata hook that automatically generates an 'all' extra.
 
     This hook collects all optional dependencies defined in the project
     and creates an 'all' extra that includes all of them.
@@ -35,12 +35,13 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
     PLUGIN_NAME: str = "autoextras"
 
     def update(self, metadata: dict[str, Any]) -> None:
-        """Update the project metadata to add the 'all' extra.
+        r"""Update the project metadata to add the configured extras
+        group.
 
         This method collects all dependencies from all optional extras
-        (excluding any existing 'all' extra), removes duplicates, sorts
-        them alphabetically, and creates/updates the 'all' extra with
-        the combined list.
+        (excluding any existing group with the configured name), removes
+        duplicates, sorts them alphabetically, and creates/updates the
+        extras group with the combined list.
 
         Args:
             metadata: The project metadata dictionary to update. This
@@ -48,28 +49,32 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
         Note:
             If no optional dependencies exist, this method does nothing.
-            Any pre-existing 'all' extra will be completely replaced.
+            Any pre-existing extras group will be completely replaced.
         """
+        # Get the configured extras group name (defaults to 'all')
+        extras_group_name = self.config.get("group-name", "all")
+
         # Get optional dependencies
         optional_dependencies = metadata.get("optional-dependencies", {})
 
-        # Collect all dependencies from all extras (except 'all' if it already exists)
+        if extras_group_name in optional_dependencies:
+            msg = f"Group name '{extras_group_name}' already exists. Use a different group name."
+            raise RuntimeError(msg)
+
+        # Collect all dependencies from all extras (except the configured group if it exists)
         all_deps = set()
-        for extra_name, deps in optional_dependencies.items():
-            if extra_name != "all":
-                all_deps.update(deps)
+        for deps in optional_dependencies.values():
+            all_deps.update(deps)
 
+        # Add the extras group with all dependencies
         # Sort for consistent output
-        all_deps_sorted = sorted(all_deps)
-
-        # Add or update the 'all' extra
-        optional_dependencies["all"] = all_deps_sorted
+        optional_dependencies[extras_group_name] = sorted(all_deps)
         metadata["optional-dependencies"] = optional_dependencies
 
 
 @hookimpl
 def hatch_register_metadata_hook() -> type[MetadataHookInterface]:
-    """Register the autoextras metadata hook with hatchling.
+    r"""Register the autoextras metadata hook with hatchling.
 
     This function is called by Hatchling's plugin system to register
     the AutoExtrasMetadataHook as a metadata hook plugin.
