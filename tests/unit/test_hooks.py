@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 from hatchling_autoextras_hook.hooks import (
@@ -11,6 +12,47 @@ from hatchling_autoextras_hook.hooks import (
 def test_plugin_name() -> None:
     """Test that the plugin name is correct."""
     assert AutoExtrasMetadataHook.PLUGIN_NAME == "autoextras"
+
+
+def test_update_default_group_name() -> None:
+    """Test that the default group name is 'all'."""
+    hook = AutoExtrasMetadataHook("test", {})
+    metadata = {
+        "optional-dependencies": {
+            "dev": ["pytest>=7.0", "black>=22.0"],
+            "docs": ["sphinx>=4.0"],
+        }
+    }
+
+    hook.update(metadata)
+
+    assert "all" in metadata["optional-dependencies"]
+    assert metadata["optional-dependencies"]["all"] == [
+        "black>=22.0",
+        "pytest>=7.0",
+        "sphinx>=4.0",
+    ]
+
+
+def test_update_custom_group_name() -> None:
+    """Test that a custom group name can be configured."""
+    hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
+    metadata = {
+        "optional-dependencies": {
+            "dev": ["pytest>=7.0", "black>=22.0"],
+            "docs": ["sphinx>=4.0"],
+        }
+    }
+
+    hook.update(metadata)
+
+    assert "complete" in metadata["optional-dependencies"]
+    assert "all" not in metadata["optional-dependencies"]
+    assert metadata["optional-dependencies"]["complete"] == [
+        "black>=22.0",
+        "pytest>=7.0",
+        "sphinx>=4.0",
+    ]
 
 
 def test_update_with_no_optional_dependencies() -> None:
@@ -82,24 +124,6 @@ def test_update_with_duplicate_dependencies() -> None:
     assert set(metadata["optional-dependencies"]["all"]) == expected
 
 
-def test_update_preserves_existing_all_extra() -> None:
-    """Test that update replaces existing 'all' extra."""
-    metadata = {
-        "optional-dependencies": {
-            "all": ["old-dependency"],
-            "dev": ["pytest>=7.0", "black>=22.0"],
-        }
-    }
-    AutoExtrasMetadataHook(root="test", config={}).update(metadata)
-    assert "all" in metadata["optional-dependencies"]
-    # 'all' should be regenerated from 'dev', not include old-dependency
-    assert "old-dependency" not in metadata["optional-dependencies"]["all"]
-    assert set(metadata["optional-dependencies"]["all"]) == {
-        "pytest>=7.0",
-        "black>=22.0",
-    }
-
-
 def test_update_sorts_dependencies() -> None:
     """Test that dependencies in 'all' extra are sorted."""
     metadata = {
@@ -113,6 +137,20 @@ def test_update_sorts_dependencies() -> None:
         "mmm-package",
         "zzz-package",
     ]
+
+
+def test_update_preserves_existing_all() -> None:
+    """Test that update raises an error if 'all' extra already
+    exists."""
+    metadata = {
+        "optional-dependencies": {
+            "all": ["old-dependency"],
+            "dev": ["pytest>=7.0", "black>=22.0"],
+        }
+    }
+    hook = AutoExtrasMetadataHook(root="test", config={})
+    with pytest.raises(RuntimeError, match=r"Group name 'all' already exists."):
+        hook.update(metadata)
 
 
 def test_hatch_register_metadata_hook_returns_correct_class() -> None:
