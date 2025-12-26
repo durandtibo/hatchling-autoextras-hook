@@ -18,7 +18,7 @@ def build_minimal_project(path: Path, config: str = "") -> None:
     """
     path.joinpath("pyproject.toml").write_text(
         f"""[build-system]
-requires = ["hatchling", "hatchling-autoextras-hook>=0.1.3a0"]
+requires = ["hatchling", "hatchling-autoextras-hook>=0.1.3a1"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
@@ -137,6 +137,35 @@ def test_autoextras_integration_custom_name(tmp_path: Path) -> None:
     # 1. Create a minimal project that uses the autoextras metadata hook
     # ----------------------------------------------------------------------
     build_minimal_project(path, config='group-name = "complete"')
+    # ----------------------------------------------------------------------
+    # 2. Build the wheel using uv build
+    # ----------------------------------------------------------------------
+    subprocess.run(["uv", "build"], cwd=path, check=True)  # noqa: S607
+    # ----------------------------------------------------------------------
+    # 3. Find the generated wheel in dist/
+    # ----------------------------------------------------------------------
+    wheel_path = find_wheel_path(path)
+    # ----------------------------------------------------------------------
+    # 4. Inspect wheel metadata (METADATA file inside the .whl)
+    # ----------------------------------------------------------------------
+    metadata = read_metadata(wheel_path)
+    # ----------------------------------------------------------------------
+    # 5. Validate that the 'all' extra was automatically generated
+    # ----------------------------------------------------------------------
+    validate_metadata(metadata, group_name="complete")
+
+
+def test_autoextras_integration_exclude(tmp_path: Path) -> None:
+    r"""Build a temporary Python project using hatchling with the
+    autoextras plugin and verify that the generated wheel contains an
+    'all' extra that merges all optional dependencies."""
+    path = tmp_path.joinpath("project")
+    path.mkdir(exist_ok=True, parents=True)
+
+    # ----------------------------------------------------------------------
+    # 1. Create a minimal project that uses the autoextras metadata hook
+    # ----------------------------------------------------------------------
+    build_minimal_project(path, config='group-name = "complete"\nexclude = ["plot"]')
     # ----------------------------------------------------------------------
     # 2. Build the wheel using uv build
     # ----------------------------------------------------------------------
