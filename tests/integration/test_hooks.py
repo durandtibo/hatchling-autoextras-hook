@@ -18,7 +18,7 @@ def build_minimal_project(path: Path, config: str = "") -> None:
     """
     path.joinpath("pyproject.toml").write_text(
         f"""[build-system]
-requires = ["hatchling", "hatchling-autoextras-hook>=0.1.3a1"]
+requires = ["hatchling", "hatchling-autoextras-hook>=0.1.3"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
