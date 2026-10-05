@@ -9,6 +9,7 @@ This directory contains scripts and configurations used for development, testing
 Validates markdown files by running Python's doctest on code examples embedded in the documentation.
 
 **Purpose:**
+
 - Ensures code examples in markdown files are accurate and executable
 - Catches outdated examples that may break after code changes
 - Validates all `.md` files except those in excluded directories (`.venv`, `.pytest_cache`)
@@ -20,9 +21,11 @@ Validates markdown files by running Python's doctest on code examples embedded i
 ```
 
 **Requirements:**
+
 - Python with doctest module (standard library)
 
 **Exit Codes:**
+
 - `0`: All markdown files passed validation
 - `1`: One or more files failed validation
 
@@ -34,6 +37,7 @@ Generates and updates the package versions configuration file used for testing c
 with different versions of hatchling.
 
 **Purpose:**
+
 - Fetches the latest minor versions of hatchling (>= 1.18)
 - Creates/updates `dev/config/package_versions.json` for CI/CD matrix testing
 - Ensures the package is tested against multiple hatchling versions
@@ -47,6 +51,7 @@ python dev/generate_versions.py
 **Output:** Creates/updates `dev/config/package_versions.json`
 
 **Requirements:**
+
 - Python with `feu` package installed (`uv sync --group dev`)
 
 ---
@@ -58,6 +63,7 @@ python dev/generate_versions.py
 Contains configuration files for development tools and CI/CD processes.
 
 **Files:**
+
 - `package_versions.json`: List of hatchling versions to test against in CI/CD workflows
 
 ---
@@ -72,6 +78,7 @@ package meets quality requirements.
 Validates that the package is properly typed and recognized by pyright.
 
 **Purpose:**
+
 - Creates a temporary test file that imports the package
 - Runs pyright to verify type annotations are correct
 - Ensures the package is recognized as a typed package
@@ -83,10 +90,12 @@ Validates that the package is properly typed and recognized by pyright.
 ```
 
 **Requirements:**
+
 - `pyright` installed
 - `hatchling-autoextras-hook` installed in current environment
 
 **Exit Codes:**
+
 - `0`: Type checking passed
 - `1`: Type checking failed
 
@@ -97,6 +106,7 @@ Validates that the package is properly typed and recognized by pyright.
 Validates the dependency tree structure of the installed package.
 
 **Purpose:**
+
 - Verifies the package has only the expected dependency (hatchling)
 - Checks version patterns match expected format
 - Ensures no unexpected dependencies were introduced
@@ -108,10 +118,12 @@ Validates the dependency tree structure of the installed package.
 ```
 
 **Requirements:**
+
 - `uv` installed
 - `hatchling-autoextras-hook` installed in current environment
 
 **Exit Codes:**
+
 - `0`: Dependency tree validation passed
 - `1`: Unexpected dependencies or versions found
 
@@ -122,6 +134,7 @@ Validates the dependency tree structure of the installed package.
 Verifies package metadata is correctly configured.
 
 **Purpose:**
+
 - Validates package name is "hatchling-autoextras-hook"
 - Confirms hatchling is listed as a required dependency
 - Ensures metadata integrity
@@ -133,10 +146,12 @@ Verifies package metadata is correctly configured.
 ```
 
 **Requirements:**
+
 - `uv` installed
 - `hatchling-autoextras-hook` installed in current environment
 
 **Exit Codes:**
+
 - `0`: Metadata validation passed
 - `1`: Missing or incorrect metadata
 
@@ -147,6 +162,7 @@ Verifies package metadata is correctly configured.
 Runs custom package validation checks as a standalone Python script.
 
 **Purpose:**
+
 - Executes project-specific validation not covered by standard checks
 - Runs `tests/package_checks.py` as a standalone Python script
 - Validates package installation and basic functionality
@@ -160,11 +176,13 @@ Runs custom package validation checks as a standalone Python script.
 ```
 
 **Requirements:**
+
 - Python installed
 - `hatchling-autoextras-hook` installed in current environment
 - `tests/package_checks.py` exists
 
 **Exit Codes:**
+
 - `0`: Custom checks passed
 - `1`: Custom checks failed
 
@@ -174,12 +192,12 @@ Runs custom package validation checks as a standalone Python script.
 
 These scripts are integrated into GitHub Actions workflows for automated testing:
 
-| Script | Workflow | Purpose |
-|--------|----------|---------|
-| `generate_versions.py` | `.github/workflows/generate-package-versions.yaml` | Generate version matrix for testing |
-| `package/check_*.sh` | `.github/workflows/build.yaml` | Package validation after build |
-| `check_markdown.sh` | Doctest workflow | Validate markdown documentation |
-| `tests/package_checks.py` | `.github/workflows/test-package*.yaml` | Package installation tests |
+| Script                    | Workflow                                           | Purpose                             |
+| ------------------------- | -------------------------------------------------- | ----------------------------------- |
+| `generate_versions.py`    | `.github/workflows/generate-package-versions.yaml` | Generate version matrix for testing |
+| `package/check_*.sh`      | `.github/workflows/build.yaml`                     | Package validation after build      |
+| `check_markdown.sh`       | Doctest workflow                                   | Validate markdown documentation     |
+| `tests/package_checks.py` | `.github/workflows/test-package*.yaml`             | Package installation tests          |
 
 ## Requirements
 

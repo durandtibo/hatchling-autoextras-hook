@@ -18,11 +18,13 @@ We take the security of `hatchling-autoextras-hook` seriously. If you believe yo
 **Please do not report security vulnerabilities through public GitHub issues.**
 
 Instead, please report them via email to:
+
 - **Email**: durand.tibo+gh@gmail.com
 
 ### What to Include
 
 Please include the following information in your report:
+
 - Type of issue (e.g., buffer overflow, SQL injection, cross-site scripting, etc.)
 - Full paths of source file(s) related to the manifestation of the issue
 - The location of the affected source code (tag/branch/commit or direct URL)
@@ -60,10 +62,12 @@ When using `hatchling-autoextras-hook`:
 ### Build-Time Execution
 
 As a Hatchling metadata hook, this package runs during the build process. It has access to:
+
 - Project metadata in `pyproject.toml`
 - Optional dependencies configuration
 
 The hook only reads project metadata and does not:
+
 - Execute arbitrary code from project files
 - Make network requests
 - Write files outside the build context
@@ -72,6 +76,7 @@ The hook only reads project metadata and does not:
 ### Supply Chain Security
 
 We recommend:
+
 - Using pinned versions or version ranges for this package in your build dependencies
 - Verifying package signatures when available
 - Using tools like `pip-audit` to scan for known vulnerabilities
@@ -79,6 +84,7 @@ We recommend:
 ## Contact
 
 For any security concerns or questions, please contact:
+
 - **Email**: durand.tibo+gh@gmail.com
 
 Thank you for helping keep `hatchling-autoextras-hook` and its users safe!
