@@ -190,7 +190,8 @@ def test_autoextras_integration_exclude(tmp_path: Path) -> None:
 
 
 def test_validate_metadata_valid() -> None:
-    metadata = r"""Metadata-Version: 2.4
+    metadata =\
+               r"""Metadata-Version: 2.4
 Name: testpkg
 Version: 0.1.0
 Dynamic: Maintainer
@@ -210,7 +211,8 @@ Description-Content-Type: text/markdown
 
 
 def test_validate_metadata_invalid() -> None:
-    metadata = r"""Metadata-Version: 2.4
+    metadata =\
+               r"""Metadata-Version: 2.4
 Name: testpkg
 Version: 0.1.0
 Dynamic: Maintainer
