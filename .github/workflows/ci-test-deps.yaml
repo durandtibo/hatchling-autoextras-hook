@@ -1,0 +1,29 @@
+# Dependency compatibility testing workflow.
+# Tests the package with different versions of its dependencies.
+# Ensures compatibility across supported dependency version ranges.
+
+name: Dependency Compatibility (Source)
+on:
+  workflow_call:
+    inputs:
+      test-matrix:
+        description: "JSON test matrix from lib-get-test-matrix.yaml, loaded once by the caller"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  # Get the version bounds of the dependencies from dev/config/package_versions.json,
+  # kept up to date by bot-generate-package-versions.yaml.
+  get-versions:
+    uses: ./.github/workflows/lib-get-package-versions.yaml
+
+  hatchling:
+    needs: get-versions
+    uses: ./.github/workflows/ci-test-code-dep.yaml
+    with:
+      package-name: hatchling
+      package-versions: ${{ toJson(fromJson(needs.get-versions.outputs.package_versions).hatchling) }}
+      test-matrix: ${{ inputs.test-matrix }}
