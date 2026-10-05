@@ -190,41 +190,47 @@ def test_autoextras_integration_exclude(tmp_path: Path) -> None:
 
 
 def test_validate_metadata_valid() -> None:
-    metadata =\
-               r"""Metadata-Version: 2.4
-Name: testpkg
-Version: 0.1.0
-Dynamic: Maintainer
-Dynamic: Maintainer-email
-Summary: Test project
-Requires-Python: >=3.10
-Provides-Extra: all
-Requires-Dist: numpy>=2.0; extra == 'all'
-Requires-Dist: pytest>=9.0; extra == 'all'
-Provides-Extra: dev
-Requires-Dist: pytest>=9.0; extra == 'dev'
-Provides-Extra: numpy
-Requires-Dist: numpy>=2.0; extra == 'numpy'
-Description-Content-Type: text/markdown
-"""
+    metadata = "\n".join(
+        [
+            "Metadata-Version: 2.4",
+            "Name: testpkg",
+            "Version: 0.1.0",
+            "Dynamic: Maintainer",
+            "Dynamic: Maintainer-email",
+            "Summary: Test project",
+            "Requires-Python: >=3.10",
+            "Provides-Extra: all",
+            "Requires-Dist: numpy>=2.0; extra == 'all'",
+            "Requires-Dist: pytest>=9.0; extra == 'all'",
+            "Provides-Extra: dev",
+            "Requires-Dist: pytest>=9.0; extra == 'dev'",
+            "Provides-Extra: numpy",
+            "Requires-Dist: numpy>=2.0; extra == 'numpy'",
+            "Description-Content-Type: text/markdown",
+            "",
+        ]
+    )
     validate_metadata(metadata)
 
 
 def test_validate_metadata_invalid() -> None:
-    metadata =\
-               r"""Metadata-Version: 2.4
-Name: testpkg
-Version: 0.1.0
-Dynamic: Maintainer
-Dynamic: Maintainer-email
-Summary: Test project
-Requires-Python: >=3.10
-Provides-Extra: dev
-Requires-Dist: pytest>=9.0; extra == 'dev'
-Provides-Extra: numpy
-Requires-Dist: numpy>=2.0; extra == 'numpy'
-Description-Content-Type: text/markdown
-"""
+    metadata = "\n".join(
+        [
+            "Metadata-Version: 2.4",
+            "Name: testpkg",
+            "Version: 0.1.0",
+            "Dynamic: Maintainer",
+            "Dynamic: Maintainer-email",
+            "Summary: Test project",
+            "Requires-Python: >=3.10",
+            "Provides-Extra: dev",
+            "Requires-Dist: pytest>=9.0; extra == 'dev'",
+            "Provides-Extra: numpy",
+            "Requires-Dist: numpy>=2.0; extra == 'numpy'",
+            "Description-Content-Type: text/markdown",
+            "",
+        ]
+    )
     with pytest.raises(AssertionError):
         validate_metadata(metadata)
 
