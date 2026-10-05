@@ -136,45 +136,82 @@ pip install your-package[all]
 
 ## Features
 
-- Automatically combines all optional dependencies
-- Removes duplicates across extras
-- Sorts dependencies alphabetically for consistency
-- Works seamlessly with the Hatchling build system
-- Zero configuration required - just enable the hook
+- Automatically combines all optional dependencies into a single extra
+- Removes duplicates across extras and normalizes whitespace
+- Sorts dependencies alphabetically for reproducible output
+- Configurable group name, exclusion list, and overwrite behavior
+- Validates its configuration and fails early with clear error messages
 - Compatible with all Hatchling build targets (wheel, sdist)
 
 ## Configuration
 
-The hook requires minimal configuration. Simply add it to your `pyproject.toml`:
+All options are optional. Enabling the hook with an empty table is enough:
 
 ```toml
 [tool.hatch.metadata.hooks.autoextras]
 ```
 
-Currently, the hook does not support any additional configuration options. It automatically:
+| Option       | Type      | Default | Description                                                         |
+| ------------ | --------- | ------- | ------------------------------------------------------------------- |
+| `group-name` | string    | `"all"` | Name of the generated extra. Must be a non-empty string.            |
+| `exclude`    | list[str] | `[]`    | Names of extras that must not be included in the generated extra.   |
+| `overwrite`  | boolean   | `false` | Replace an existing extra with the same name instead of raising.    |
 
-- Creates an `all` extra containing all dependencies from all other extras
-- Excludes any pre-existing `all` extra from being included in the new `all` extra
-- Maintains all original extras unchanged
+Example:
+
+```toml
+[tool.hatch.metadata.hooks.autoextras]
+group-name = "complete"
+exclude = ["dev", "docs"]
+overwrite = false
+```
+
+With this configuration, `pip install my-package[complete]` installs the dependencies of every
+extra except `dev` and `docs`.
+
+Regardless of the options, the hook:
+
+- Leaves all original extras unchanged
+- Never includes the generated extra itself in the list of collected dependencies
+- Creates an empty extra if the project has no optional dependencies
+
+### Errors
+
+The build fails with an explicit message in the following cases:
+
+| Situation                                                          | Exception      |
+| ------------------------------------------------------------------ | -------------- |
+| An extra named `group-name` already exists and `overwrite = false` | `RuntimeError` |
+| `group-name` is not a non-empty string                             | `ValueError`   |
+| `exclude` is not a list of strings                                 | `TypeError`    |
+| `overwrite` is not a boolean                                       | `TypeError`    |
+| `optional-dependencies` is not a table, or an extra is not a list  | `TypeError`    |
 
 ## Advanced Usage
 
-### Excluding the Hook from Certain Extras
+### Using a Different Group Name
 
-If you want to manually manage your `all` extra or prevent certain extras from being included,
-you can work around this by using a different extra name (like `all-deps`) and then creating
-your own `all` extra manually.
+If `all` is already used by a hand-written extra, either pick another name with `group-name`, or
+set `overwrite = true` to let the hook replace it.
+
+### Excluding Extras
+
+Use `exclude` to keep extras such as `dev`, `test`, or `docs` out of the combined extra:
+
+```toml
+[tool.hatch.metadata.hooks.autoextras]
+exclude = ["dev", "test"]
+```
 
 ### Using with Other Metadata Hooks
 
-This hook is compatible with other Hatchling metadata hooks. They will run in the order
-specified in your configuration.
+This hook is compatible with other Hatchling metadata hooks.
 
 ## Troubleshooting
 
 ### Hook Not Triggering
 
-**Problem**: The `all` extra is not being generated.
+**Problem**: The generated extra is not present.
 
 **Solutions**:
 
@@ -187,7 +224,7 @@ specified in your configuration.
 
    Hatchling metadata hooks only run when there are dynamic fields.
 
-2. Verify the hook is properly registered in your `[build-system]`:
+2. Verify the hook is listed in your `[build-system]`:
 
    ```toml
    [build-system]
@@ -195,73 +232,78 @@ specified in your configuration.
    ```
 
 3. Check that the hook configuration exists:
+
    ```toml
    [tool.hatch.metadata.hooks.autoextras]
    ```
 
-### `all` Extra Missing Dependencies
+### `Cannot create 'all' group: already exists`
 
-**Problem**: Some dependencies are missing from the generated `all` extra.
+**Problem**: The build raises a `RuntimeError` because an `all` extra is already defined.
 
-**Solution**: Ensure all your extras are defined in `[project.optional-dependencies]`.
-The hook only processes extras defined there.
+**Solution**: Set `overwrite = true`, choose another `group-name`, or remove your manual `all`
+extra.
+
+### Dependencies Missing from the Generated Extra
+
+**Problem**: Some dependencies are missing.
+
+**Solutions**: Ensure the extras are defined in `[project.optional-dependencies]` (the hook does not
+read `[dependency-groups]`), and check that they are not listed in `exclude`.
 
 ### Build Failures
 
-**Problem**: Build fails with errors related to the hook.
+**Problem**: The build fails with errors related to the hook.
 
 **Solutions**:
 
-1. Verify you're using Hatchling >= 1.18.0
-2. Check that your `pyproject.toml` syntax is correct
-3. Try building with verbose output: `python -m build -v`
+1. Verify you are using Hatchling >= 1.18.0
+2. Check the error message: it identifies the invalid option or extra
+3. Check that your `pyproject.toml` syntax is correct
+4. Build with verbose output: `python -m build -v`
 
 ## FAQ
 
 ### Q: Will this hook override my manually defined `all` extra?
 
-**A:** Yes, if you have a manually defined `all` extra in your `[project.optional-dependencies]`,
-it will be replaced with the auto-generated one. The hook regenerates the `all` extra from all
-other extras each time the build runs.
+**A:** No, not by default. The build fails with a `RuntimeError` so nothing is silently lost. Set
+`overwrite = true` to replace it, or use a different `group-name`.
 
 ### Q: Can I exclude specific extras from being included in `all`?
 
-**A:** Not currently. The hook includes all extras by default. If you need this functionality,
-please open a feature request on GitHub.
+**A:** Yes, use the `exclude` option.
 
 ### Q: Does this work with dependency groups (PEP 735)?
 
-**A:** This hook specifically works with optional dependencies defined in
-`[project.optional-dependencies]`. It does not process dependency groups defined in
-`[dependency-groups]` as those are not part of the package metadata.
+**A:** No. The hook only works with `[project.optional-dependencies]`. Dependency groups in
+`[dependency-groups]` are not part of the package metadata.
 
 ### Q: Will this slow down my build process?
 
-**A:** No, the performance impact is negligible. The hook simply collects and sorts dependency
-strings, which is a fast operation even for projects with many extras.
+**A:** No, the hook only collects, deduplicates and sorts dependency strings.
 
 ### Q: Can I use this with Poetry or PDM?
 
-**A:** This hook is specifically designed for Hatchling. It won't work with Poetry or PDM's
-build systems. Those tools have their own mechanisms for managing extras.
+**A:** No, the hook is specific to Hatchling.
 
 ### Q: How do I verify the hook is working?
 
-**A:** Build your package and inspect the generated wheel's metadata:
+**A:** Build your package and inspect the wheel metadata:
 
 ```bash
 python -m build
-unzip -p dist/your_package-*.whl '*/METADATA' | grep -A 10 "Provides-Extra: all"
+unzip -p dist/your_package-*.whl '*/METADATA' | grep "Provides-Extra: all"
 ```
 
 ### Q: Does this hook modify my source files?
 
-**A:** No, the hook only modifies the package metadata during the build process. Your source
-files, including `pyproject.toml`, remain unchanged.
+**A:** No, it only modifies the package metadata during the build. `pyproject.toml` is unchanged.
 
 ## Development
 
-This project uses `uv` for dependency management.
+This project uses `uv` for dependency management. See [CONTRIBUTING.md](.github/CONTRIBUTING.md)
+for setup instructions (`make setup-venv`) and [dev/README.md](dev/README.md) for development
+scripts.
 
 ### Dependencies
 
