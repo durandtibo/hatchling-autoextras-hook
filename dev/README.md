@@ -4,33 +4,6 @@ This directory contains scripts and configurations used for development, testing
 
 ## Scripts
 
-### check_markdown.sh
-
-Validates markdown files by running Python's doctest on code examples embedded in the documentation.
-
-**Purpose:**
-
-- Ensures code examples in markdown files are accurate and executable
-- Catches outdated examples that may break after code changes
-- Validates all `.md` files except those in excluded directories (`.venv`, `.pytest_cache`)
-
-**Usage:**
-
-```bash
-./dev/check_markdown.sh
-```
-
-**Requirements:**
-
-- Python with doctest module (standard library)
-
-**Exit Codes:**
-
-- `0`: All markdown files passed validation
-- `1`: One or more files failed validation
-
----
-
 ### generate_versions.py
 
 Generates and updates the package versions configuration file used for testing compatibility
@@ -68,8 +41,6 @@ Contains configuration files for development tools and CI/CD processes.
 
 ---
 
----
-
 ## CI/CD Integration
 
 These scripts are integrated into GitHub Actions workflows for automated testing:
@@ -77,7 +48,6 @@ These scripts are integrated into GitHub Actions workflows for automated testing
 | Script                    | Workflow                                           | Purpose                             |
 | ------------------------- | -------------------------------------------------- | ----------------------------------- |
 | `generate_versions.py`    | `.github/workflows/generate-package-versions.yaml` | Generate version matrix for testing |
-| `check_markdown.sh`       | Doctest workflow                                   | Validate markdown documentation     |
 | `tests/package_checks.py` | `.github/workflows/test-package*.yaml`             | Package installation tests          |
 
 ## Requirements
@@ -91,13 +61,3 @@ uv sync --group dev
 # Or using the project's invoke tasks
 make install-all
 ```
-
-## Best Practices
-
-When adding new validation scripts:
-
-1. Include a comprehensive header comment explaining purpose, usage, requirements, and exit codes
-2. Use `set -euo pipefail` for bash scripts to fail fast on errors
-3. Add shellcheck validation to ensure script quality
-4. Document the script in this README
-5. Add the script to relevant CI/CD workflows if applicable

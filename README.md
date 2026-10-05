@@ -151,11 +151,11 @@ All options are optional. Enabling the hook with an empty table is enough:
 [tool.hatch.metadata.hooks.autoextras]
 ```
 
-| Option       | Type      | Default | Description                                                         |
-| ------------ | --------- | ------- | ------------------------------------------------------------------- |
-| `group-name` | string    | `"all"` | Name of the generated extra. Must be a non-empty string.            |
-| `exclude`    | list[str] | `[]`    | Names of extras that must not be included in the generated extra.   |
-| `overwrite`  | boolean   | `false` | Replace an existing extra with the same name instead of raising.    |
+| Option       | Type      | Default | Description                                                       |
+| ------------ | --------- | ------- | ----------------------------------------------------------------- |
+| `group-name` | string    | `"all"` | Name of the generated extra. Must be a non-empty string.          |
+| `exclude`    | list[str] | `[]`    | Names of extras that must not be included in the generated extra. |
+| `overwrite`  | boolean   | `false` | Replace an existing extra with the same name instead of raising.  |
 
 Example:
 
@@ -173,7 +173,9 @@ Regardless of the options, the hook:
 
 - Leaves all original extras unchanged
 - Never includes the generated extra itself in the list of collected dependencies
+- Ignores non-string and blank dependency entries
 - Creates an empty extra if the project has no optional dependencies
+- Logs what it generated at `DEBUG` level
 
 ### Errors
 
@@ -206,6 +208,18 @@ exclude = ["dev", "test"]
 ### Using with Other Metadata Hooks
 
 This hook is compatible with other Hatchling metadata hooks.
+
+### Python API
+
+The hook can also be used directly, which is mostly useful for testing:
+
+```python
+from hatchling_autoextras_hook.hooks import AutoExtrasMetadataHook
+
+metadata = {"optional-dependencies": {"dev": ["pytest>=7.0", "black>=22.0"]}}
+hook = AutoExtrasMetadataHook("root", {"group-name": "complete"})
+hook.update(metadata)  # modifies `metadata` in place
+```
 
 ## Troubleshooting
 
