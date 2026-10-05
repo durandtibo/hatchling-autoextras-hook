@@ -179,13 +179,16 @@ specified in your configuration.
 **Solutions**:
 
 1. Ensure you have at least one dynamic field in your `[project]` section:
+
    ```toml
    [project]
    dynamic = ["version"]
    ```
+
    Hatchling metadata hooks only run when there are dynamic fields.
 
 2. Verify the hook is properly registered in your `[build-system]`:
+
    ```toml
    [build-system]
    requires = ["hatchling>=1.18.0", "hatchling-autoextras-hook"]
@@ -263,7 +266,7 @@ This project uses `uv` for dependency management.
 ### Dependencies
 
 | `hatchling-autoextras-hook` | `hatchling`   | `python`       |
-|-----------------------------|---------------|----------------|
+| --------------------------- | ------------- | -------------- |
 | `main`                      | `>=1.18,<2.0` | `>=3.10`       |
 | `0.1.3`                     | `>=1.18,<2.0` | `>=3.10`       |
 | `0.1.2`                     | `>=1.18,<2.0` | `>=3.10`       |

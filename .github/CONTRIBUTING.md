@@ -47,6 +47,7 @@ source .venv/bin/activate
 We actively welcome your pull requests.
 
 1. Fork the repo and create your branch from `main`:
+
    ```bash
    git checkout -b my-feature-branch
    ```
@@ -61,6 +62,7 @@ We actively welcome your pull requests.
    - Add examples if introducing new functionality
 
 4. Ensure the test suite passes:
+
    ```bash
    # Run unit tests
    inv unit-test --cov
@@ -73,6 +75,7 @@ We actively welcome your pull requests.
    ```
 
 5. Make sure your code lints and is properly formatted:
+
    ```bash
    # Run pre-commit hooks
    pre-commit run --all-files
@@ -83,11 +86,13 @@ We actively welcome your pull requests.
    ```
 
 6. Commit your changes with a clear and descriptive commit message:
+
    ```bash
    git commit -m "Add feature: brief description of what was added"
    ```
 
 7. Push to your fork and submit a pull request:
+
    ```bash
    git push origin my-feature-branch
    ```
@@ -101,6 +106,7 @@ We use GitHub issues to track public bugs or feature requests.
 ### Reporting Bugs
 
 When reporting bugs, please include:
+
 - A clear and descriptive title
 - Steps to reproduce the issue
 - Expected behavior
@@ -112,6 +118,7 @@ When reporting bugs, please include:
 ### Feature Requests
 
 For feature requests, please include:
+
 - A clear and concise description of the feature
 - The motivation for the feature (what problem does it solve?)
 - Examples of how the feature would be used
@@ -151,6 +158,7 @@ Good documentation is crucial:
 ## Questions?
 
 If you have questions about contributing, feel free to:
+
 - Open a discussion on GitHub Discussions
 - Ask in an issue
 - Reach out to the maintainers

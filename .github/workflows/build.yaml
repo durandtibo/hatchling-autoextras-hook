@@ -1,7 +1,7 @@
 name: Build Tests
 on:
   workflow_call:
-  workflow_dispatch:  # to trigger manually
+  workflow_dispatch: # to trigger manually
 
 permissions:
   contents: read
@@ -14,7 +14,7 @@ jobs:
       max-parallel: 8
       fail-fast: false
       matrix:
-        dist-type: [ "sdist", "wheel" ]
+        dist-type: ["sdist", "wheel"]
 
     steps:
       - name: Checkout
