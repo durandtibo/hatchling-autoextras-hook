@@ -55,7 +55,7 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         """Initialize the hook and validate configuration.
 
         Args:
-            root: The name of the plugin.
+            root: The root directory of the project.
             config: The plugin configuration dictionary.
 
         Raises:
@@ -79,6 +79,10 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
         exclude = self.config["exclude"]
         if not isinstance(exclude, list):
+            msg = "'exclude' must be a list of extra names"
+            raise TypeError(msg)
+
+        if not all(isinstance(name, str) for name in exclude):
             msg = "'exclude' must be a list of extra names"
             raise TypeError(msg)
 
@@ -107,9 +111,9 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             TypeError: If optional dependencies are not in the expected format.
 
         Note:
-            If no optional dependencies exist, this method does nothing.
-            Any pre-existing extras group will be completely replaced if
-            overwrite is True.
+            If no optional dependencies exist, an empty group is
+            created. Any pre-existing extras group will be completely
+            replaced if overwrite is True.
         """
         # Get configuration options
         extras_group_name = self.config["group-name"]
@@ -118,6 +122,9 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
         # Get optional dependencies
         optional_dependencies = metadata.get("optional-dependencies", {})
+        if not isinstance(optional_dependencies, dict):
+            msg = "'optional-dependencies' must be a table of extras"
+            raise TypeError(msg)
 
         # Check if the group already exists
         if extras_group_name in optional_dependencies:
@@ -129,7 +136,7 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
                     f"Configure a different 'group-name' in pyproject.toml or set 'overwrite = true'"
                 )
                 raise RuntimeError(msg)
-            logger.debug(f"Overwriting existing '{extras_group_name}' group")
+            logger.debug("Overwriting existing '%s' group", extras_group_name)
 
         # Collect all dependencies from all extras (except excluded ones)
         all_deps: set[str] = set()
@@ -140,8 +147,14 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             if extra_name == extras_group_name or extra_name in exclude_groups:
                 continue
 
-            # Add dependencies, normalizing whitespace
-            all_deps.update(dep.strip() for dep in deps if isinstance(dep, str))
+            if not isinstance(deps, list):
+                msg = f"Dependencies of extra '{extra_name}' must be a list of strings"
+                raise TypeError(msg)
+
+            # Add dependencies, normalizing whitespace and dropping blanks
+            all_deps.update(
+                stripped for dep in deps if isinstance(dep, str) and (stripped := dep.strip())
+            )
             processed_extras.append(extra_name)
 
         # Add the extras group with all dependencies (sorted for consistent output)
@@ -149,8 +162,11 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         metadata["optional-dependencies"] = optional_dependencies
 
         logger.debug(
-            f"Created '{extras_group_name}' with {len(all_deps)} dependencies "
-            f"from {len(processed_extras)} extras: {processed_extras}"
+            "Created '%s' with %d dependencies from %d extras: %s",
+            extras_group_name,
+            len(all_deps),
+            len(processed_extras),
+            processed_extras,
         )
 
 

@@ -313,3 +313,42 @@ def test_update_logs_debug(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.DEBUG, logger="hatchling_autoextras_hook.hooks"):
         AutoExtrasMetadataHook("test", {}).update(metadata)
     assert "Created 'all' with 1 dependencies from 1 extras" in caplog.text
+
+
+@pytest.mark.parametrize("exclude", [[1], ["dev", None]])
+def test_invalid_exclude_item_type(exclude: object) -> None:
+    with pytest.raises(TypeError, match=r"'exclude' must be a list of extra names"):
+        AutoExtrasMetadataHook("test", {"exclude": exclude})
+
+
+@pytest.mark.parametrize("deps", ["pytest", ("pytest",), None, 1])
+def test_update_invalid_extra_dependencies(deps: object) -> None:
+    metadata = {"optional-dependencies": {"dev": deps}}
+    with pytest.raises(TypeError, match=r"Dependencies of extra 'dev' must be a list"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+
+
+@pytest.mark.parametrize("optional", [["pytest"], "pytest", 1])
+def test_update_invalid_optional_dependencies(optional: object) -> None:
+    with pytest.raises(TypeError, match=r"'optional-dependencies' must be a table"):
+        AutoExtrasMetadataHook("test", {}).update({"optional-dependencies": optional})
+
+
+def test_update_drops_blank_dependencies() -> None:
+    metadata = {"optional-dependencies": {"dev": ["", "  ", "pytest"]}}
+    AutoExtrasMetadataHook("test", {}).update(metadata)
+    assert metadata["optional-dependencies"]["all"] == ["pytest"]
+
+
+def test_update_failure_leaves_metadata_unchanged() -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": "sphinx"}}
+    with pytest.raises(TypeError):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+    assert metadata == {"optional-dependencies": {"dev": ["pytest"], "docs": "sphinx"}}
+
+
+def test_update_logs_overwrite(caplog: pytest.LogCaptureFixture) -> None:
+    metadata = {"optional-dependencies": {"all": ["old"], "dev": ["pytest"]}}
+    with caplog.at_level(logging.DEBUG, logger="hatchling_autoextras_hook.hooks"):
+        AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
+    assert "Overwriting existing 'all' group" in caplog.text
