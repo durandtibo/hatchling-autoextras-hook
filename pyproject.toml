@@ -66,6 +66,8 @@ dev = [
   "xdoctest>=1.3,<2.0",
 ]
 
+docs = []
+
 [project.urls]
 Homepage = "https://github.com/durandtibo/hatchling-autoextras-hook"
 Repository = "https://github.com/durandtibo/hatchling-autoextras-hook"
