@@ -10,11 +10,13 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def build_minimal_project(path: Path, config: str = "") -> None:
+def build_minimal_project(path: Path, config: str = "", extra_extras: str = "") -> None:
     r"""Create a minimal project.
 
     Args:
         path: The path where to build the minimal project.
+        config: Extra lines for the ``autoextras`` hook table.
+        extra_extras: Extra lines for the optional dependencies table.
     """
     path.joinpath("pyproject.toml").write_text(
         f"""[build-system]
@@ -35,6 +37,7 @@ requires-python = ">=3.10"
 [project.optional-dependencies]
 numpy = [ "numpy>=2.0" ]
 dev = [ "pytest>=9.0" ]
+{extra_extras}
 
 [tool.hatch.metadata.hooks.autoextras]
 {config}
@@ -155,33 +158,50 @@ def test_autoextras_integration_custom_name(tmp_path: Path) -> None:
     validate_metadata(metadata, group_name="complete")
 
 
-def test_autoextras_integration_exclude(tmp_path: Path) -> None:
-    r"""Build a temporary Python project using hatchling with the
-    autoextras plugin and verify that the generated wheel contains an
-    'all' extra that merges all optional dependencies."""
-    path = tmp_path.joinpath("project")
+def build_wheel_metadata(path: Path, config: str = "", extra_extras: str = "") -> str:
+    r"""Build a project and return the wheel metadata."""
     path.mkdir(exist_ok=True, parents=True)
-
-    # ----------------------------------------------------------------------
-    # 1. Create a minimal project that uses the autoextras metadata hook
-    # ----------------------------------------------------------------------
-    build_minimal_project(path, config='group-name = "complete"\nexclude = ["plot"]')
-    # ----------------------------------------------------------------------
-    # 2. Build the wheel using uv build
-    # ----------------------------------------------------------------------
+    build_minimal_project(path, config=config, extra_extras=extra_extras)
     subprocess.run(["uv", "build"], cwd=path, check=True)  # noqa: S607
-    # ----------------------------------------------------------------------
-    # 3. Find the generated wheel in dist/
-    # ----------------------------------------------------------------------
-    wheel_path = find_wheel_path(path)
-    # ----------------------------------------------------------------------
-    # 4. Inspect wheel metadata (METADATA file inside the .whl)
-    # ----------------------------------------------------------------------
-    metadata = read_metadata(wheel_path)
-    # ----------------------------------------------------------------------
-    # 5. Validate that the 'all' extra was automatically generated
-    # ----------------------------------------------------------------------
-    validate_metadata(metadata, group_name="complete")
+    return read_metadata(find_wheel_path(path))
+
+
+def test_autoextras_integration_exclude(tmp_path: Path) -> None:
+    r"""Excluded extras must not contribute to the combined group, but
+    must still be provided as extras."""
+    metadata = build_wheel_metadata(
+        tmp_path / "project", config='group-name = "complete"\nexclude = ["dev"]'
+    )
+    assert "Provides-Extra: complete" in metadata
+    assert "Requires-Dist: numpy>=2.0; extra == 'complete'" in metadata
+    assert "Requires-Dist: pytest>=9.0; extra == 'complete'" not in metadata
+    assert "Requires-Dist: pytest>=9.0; extra == 'dev'" in metadata
+
+
+def test_autoextras_integration_existing_group_fails(tmp_path: Path) -> None:
+    r"""The build must fail if the group exists and overwrite is not
+    enabled."""
+    path = tmp_path / "project"
+    path.mkdir(parents=True)
+    build_minimal_project(path, extra_extras='all = [ "old-dep" ]')
+    result = subprocess.run(
+        ["uv", "build"],  # noqa: S607
+        cwd=path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "already exists" in result.stdout + result.stderr
+
+
+def test_autoextras_integration_overwrite(tmp_path: Path) -> None:
+    r"""With overwrite enabled, the existing group is replaced."""
+    metadata = build_wheel_metadata(
+        tmp_path / "project", config="overwrite = true", extra_extras='all = [ "old-dep" ]'
+    )
+    validate_metadata(metadata)
+    assert "old-dep" not in metadata
 
 
 #######################################
