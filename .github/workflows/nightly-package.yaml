@@ -1,53 +1,62 @@
 name: Nightly Package Tests
 on:
   schedule:
-    - cron: "0 12 * * *" # run at 12 AM UTC
+    - cron: "30 10 * * *" # run at 10:30 AM UTC
   workflow_dispatch: # to trigger manually
 
 permissions:
   contents: read
 
 jobs:
+  # Read the package name from pyproject.toml.
+  get-metadata:
+    uses: ./.github/workflows/lib-get-package-metadata.yaml
+  # Get the version bounds of the dependencies from dev/config/package_versions.json,
+  # kept up to date by bot-generate-package-versions.yaml.
   get-versions:
-    uses: ./.github/workflows/get-versions.yaml
+    uses: ./.github/workflows/lib-get-package-versions.yaml
+  # Load the shared python-version/OS matrix once, and pass it down to every
+  # job below that needs it.
+  get-matrix:
+    uses: ./.github/workflows/lib-get-test-matrix.yaml
 
   stable:
-    uses: ./.github/workflows/test-package.yaml
+    needs: [get-metadata, get-matrix]
+    uses: ./.github/workflows/nightly-test-package.yaml
     with:
-      install-cmd: "uv pip install hatchling_autoextras_hook"
+      install-cmd: "uv pip install ${{ needs.get-metadata.outputs.name }}"
+      test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
   stable-all:
-    uses: ./.github/workflows/test-package.yaml
+    needs: [get-metadata, get-matrix]
+    uses: ./.github/workflows/nightly-test-package.yaml
     with:
-      install-cmd: 'uv pip install "hatchling_autoextras_hook[all]"'
-
-  stable-numpy:
-    uses: ./.github/workflows/test-package.yaml
-    with:
-      install-cmd: 'uv pip install "hatchling_autoextras_hook[numpy]"'
+      install-cmd: 'uv pip install "${{ needs.get-metadata.outputs.name }}[all]"'
+      test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
   latest:
-    uses: ./.github/workflows/test-package.yaml
+    needs: [get-metadata, get-matrix]
+    uses: ./.github/workflows/nightly-test-package.yaml
     with:
-      install-cmd: "uv pip install --pre hatchling_autoextras_hook"
+      install-cmd: "uv pip install --pre ${{ needs.get-metadata.outputs.name }}"
+      test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
   latest-all:
-    uses: ./.github/workflows/test-package.yaml
+    needs: [get-metadata, get-matrix]
+    uses: ./.github/workflows/nightly-test-package.yaml
     with:
-      install-cmd: 'uv pip install --pre "hatchling_autoextras_hook[all]"'
+      install-cmd: 'uv pip install --pre "${{ needs.get-metadata.outputs.name }}[all]"'
+      test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
-  latest-numpy:
-    uses: ./.github/workflows/test-package.yaml
-    with:
-      install-cmd: 'uv pip install --pre "hatchling_autoextras_hook[numpy]"'
-
-  ########################
-  #     Dependencies     #
-  ########################
+  ####################
+  #   Dependencies   #
+  ####################
 
   hatchling:
-    needs: get-versions
-    uses: ./.github/workflows/test-package-dep.yaml
+    needs: [get-metadata, get-versions, get-matrix]
+    uses: ./.github/workflows/nightly-test-package-dep.yaml
     with:
       package-name: hatchling
+      install-cmd: "uv pip install ${{ needs.get-metadata.outputs.name }}"
       package-versions: ${{ toJson(fromJson(needs.get-versions.outputs.package_versions).hatchling) }}
+      test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}

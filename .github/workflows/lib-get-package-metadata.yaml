@@ -1,0 +1,63 @@
+name: Get Package Metadata
+
+# This reusable workflow wraps the extract-pyproject-metadata-action composite
+# action so its outputs can be used from a job's `strategy.matrix` or passed
+# to other reusable workflows (a `uses:` composite action alone can't be,
+# since it produces a step output, not a job output).
+#
+# Usage:
+#   jobs:
+#     get-metadata:
+#       uses: ./.github/workflows/lib-get-package-metadata.yaml
+#
+#     use-metadata:
+#       needs: get-metadata
+#       runs-on: ubuntu-latest
+#       steps:
+#         - name: Use metadata
+#           run: echo "${{ needs.get-metadata.outputs.name }}"
+
+on:
+  workflow_call:
+    outputs:
+      name:
+        description: "Project name, as declared in pyproject.toml's [project].name"
+        value: ${{ jobs.get-metadata.outputs.name }}
+      version:
+        description: "Project version, as declared in pyproject.toml's [project].version"
+        value: ${{ jobs.get-metadata.outputs.version }}
+      extras:
+        description: "JSON array of extra names from pyproject.toml's [project.optional-dependencies]"
+        value: ${{ jobs.get-metadata.outputs.extras }}
+
+  workflow_dispatch: # Allows manual triggering for testing purposes
+
+permissions:
+  contents: read
+
+jobs:
+  get-metadata:
+    runs-on: ubuntu-slim
+    timeout-minutes: 2
+    outputs:
+      name: ${{ steps.metadata.outputs.name }}
+      version: ${{ steps.metadata.outputs.version }}
+      extras: ${{ steps.metadata.outputs.extras }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Get package metadata
+        id: metadata
+        uses: durandtibo/extract-pyproject-metadata-action@4661b78698e6ceb7e04cf60bbdd52addf85a2889 # ratchet:durandtibo/extract-pyproject-metadata-action@v0.2
+
+      - name: Display package metadata
+        env:
+          PACKAGE_NAME: ${{ steps.metadata.outputs.name }}
+          PACKAGE_VERSION: ${{ steps.metadata.outputs.version }}
+          PACKAGE_EXTRAS: ${{ steps.metadata.outputs.extras }}
+        run: |
+          echo "📦 Package metadata loaded successfully:"
+          echo "name: $PACKAGE_NAME"
+          echo "version: $PACKAGE_VERSION"
+          echo "extras: $PACKAGE_EXTRAS"
