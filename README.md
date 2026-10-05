@@ -177,6 +177,75 @@ Regardless of the options, the hook:
 - Creates an empty extra if the project has no optional dependencies
 - Logs what it generated at `DEBUG` level
 
+### Option details
+
+#### `group-name`
+
+Name of the extra that the hook generates (default: `"all"`). Users install it with
+`pip install my-package[<group-name>]`. The value must be a non-empty string, otherwise a
+`ValueError` is raised.
+
+```toml
+[tool.hatch.metadata.hooks.autoextras]
+group-name = "complete"
+```
+
+```toml
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+docs = ["sphinx>=5.0"]
+complete = ["pytest>=7.0", "sphinx>=5.0"]  # generated
+```
+
+Use it when `all` is already taken by a hand-written extra, or when you prefer another name such as
+`full` or `complete`. If an extra with this name already exists, see [`overwrite`](#overwrite).
+
+#### `exclude`
+
+List of extra names to leave out of the generated extra (default: `[]`). The excluded extras remain
+available on their own; only their dependencies are not copied into the generated extra.
+
+```toml
+[tool.hatch.metadata.hooks.autoextras]
+exclude = ["dev", "docs"]
+```
+
+```toml
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+docs = ["sphinx>=5.0"]
+aws = ["boto3>=1.0"]
+all = ["boto3>=1.0"]  # generated: dev and docs are excluded
+```
+
+Notes:
+
+- Names must match the extra names exactly (case-sensitive).
+- Names that do not match any extra are silently ignored.
+- A dependency that also appears in a non-excluded extra is still included.
+- The value must be a list of strings, otherwise a `TypeError` is raised.
+
+#### `overwrite`
+
+Boolean (default: `false`) controlling what happens when an extra named `group-name` already exists
+in `[project.optional-dependencies]`.
+
+- `false`: the build fails with a `RuntimeError`, so a hand-written extra is never lost silently.
+- `true`: the existing extra is replaced by the generated one. Its previous content is **not**
+  merged: it is ignored when collecting dependencies and discarded.
+
+```toml
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+all = ["numpy"]  # hand-written
+
+[tool.hatch.metadata.hooks.autoextras]
+overwrite = true
+# result: all = ["pytest>=7.0"]
+```
+
+The value must be a boolean (`true`/`false`, not a string), otherwise a `TypeError` is raised.
+
 ### Errors
 
 The build fails with an explicit message in the following cases:
@@ -191,18 +260,13 @@ The build fails with an explicit message in the following cases:
 
 ## Advanced Usage
 
-### Using a Different Group Name
-
-If `all` is already used by a hand-written extra, either pick another name with `group-name`, or
-set `overwrite = true` to let the hook replace it.
-
-### Excluding Extras
-
-Use `exclude` to keep extras such as `dev`, `test`, or `docs` out of the combined extra:
+### Combining Options
 
 ```toml
 [tool.hatch.metadata.hooks.autoextras]
+group-name = "full"
 exclude = ["dev", "test"]
+overwrite = true
 ```
 
 ### Using with Other Metadata Hooks
@@ -285,7 +349,7 @@ read `[dependency-groups]`), and check that they are not listed in `exclude`.
 
 ### Q: Can I exclude specific extras from being included in `all`?
 
-**A:** Yes, use the `exclude` option.
+**A:** Yes, use the [`exclude`](#exclude) option.
 
 ### Q: Does this work with dependency groups (PEP 735)?
 
