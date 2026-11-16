@@ -220,4 +220,4 @@ known-first-party = ["hatchling_autoextras_hook"]
 include = ["src", "tests", "dev"]
 
 [tool.ty.environment]
-python-version = "3.10"
+python-version = "3.11"
