@@ -34,9 +34,9 @@ def main() -> None:
     multiple versions of dependencies.
     """
     versions = fetch_package_versions()
-    logger.info(f"{versions=}")
+    logger.info("versions=%s", versions)
     path = Path(__file__).parent.parent.joinpath("dev/config").joinpath("package_versions.json")
-    logger.info(f"Saving package versions to {path}")
+    logger.info("Saving package versions to %s", path)
     save_json(versions, path, exist_ok=True)
 
 
