@@ -32,7 +32,7 @@ version = "0.1.0"
 description = "Test project"
 dynamic = ["maintainers"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [project.optional-dependencies]
 numpy = [ "numpy>=2.0" ]
@@ -218,7 +218,7 @@ def test_validate_metadata_valid() -> None:
             "Dynamic: Maintainer",
             "Dynamic: Maintainer-email",
             "Summary: Test project",
-            "Requires-Python: >=3.10",
+            "Requires-Python: >=3.11",
             "Provides-Extra: all",
             "Requires-Dist: numpy>=2.0; extra == 'all'",
             "Requires-Dist: pytest>=9.0; extra == 'all'",
@@ -242,7 +242,7 @@ def test_validate_metadata_invalid() -> None:
             "Dynamic: Maintainer",
             "Dynamic: Maintainer-email",
             "Summary: Test project",
-            "Requires-Python: >=3.10",
+            "Requires-Python: >=3.11",
             "Provides-Extra: dev",
             "Requires-Dist: pytest>=9.0; extra == 'dev'",
             "Provides-Extra: numpy",
