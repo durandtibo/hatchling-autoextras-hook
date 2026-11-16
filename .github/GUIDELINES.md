@@ -26,8 +26,48 @@ load-bearing for branch protection (see the comment at the top of `ci.yaml`)
 
 One `ci-*` workflow is deliberately _not_ called from `ci.yaml`, each
 standalone with its own trigger instead: `ci-verify-workflows.yaml` lints
-`.github/workflows/*` itself, so it triggers on workflow-file changes rather
-than every PR/push.
+`.github/workflows/*` itself, so it has its own trigger instead of being part
+of `ci.yaml`. `release-pypi.yaml` calls `ci.yaml` (`workflow_call`) so nothing is
+published unless the whole CI passes.
+
+## Catalogue of the workflows
+
+The trigger of a reusable workflow is `workflow_call`: it runs when another workflow calls it
+(`ci.yaml` for the `ci-*` ones, `nightly-package.yaml` for the `nightly-test-*` ones).
+
+| Workflow                             | Trigger                                | Purpose                                                                                |
+| ------------------------------------ | -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `ci.yaml`                            | pull request, push to `main`, nightly  | Entry point: calls the `ci-*` checks below.                                            |
+| `ci-build.yaml`                      | called by `ci.yaml`                    | Build the package and check that the built package installs.                           |
+| `ci-cyclic-imports.yaml`             | called by `ci.yaml`, manual            | Check that there is no circular import (`inv imports.check-cycles`).                   |
+| `ci-doctest.yaml`                    | called by `ci.yaml`, manual            | Run the doctests (`inv test.doctest-src`).                                             |
+| `ci-format.yaml`                     | called by `ci.yaml`, manual            | Check the formatting and the linting of the Python and shell files.                    |
+| `ci-pre-commit.yaml`                 | called by `ci.yaml`, manual            | Run all the pre-commit hooks.                                                          |
+| `ci-test.yaml`                       | called by `ci.yaml`                    | Unit and integration tests, with all the dependencies and with the required ones only. |
+| `ci-test-deps.yaml`                  | called by `ci.yaml`                    | Test the package with the supported versions of `hatchling`.                           |
+| `ci-test-code-dep.yaml`              | called by `ci-test-deps.yaml`          | Test the code with the supported versions of one dependency.                           |
+| `ci-type-checking.yaml`              | called by `ci.yaml`, manual            | Type check the package with `ty`.                                                      |
+| `ci-verify-workflows.yaml`           | pull request, push to `main`, manual   | Lint the files of `.github/workflows`.                                                 |
+| `lib-get-test-matrix.yaml`           | called by other workflows, manual      | Load the Python versions and the operating systems to test.                            |
+| `lib-get-package-metadata.yaml`      | called by other workflows, manual      | Read the name, version and extras from `pyproject.toml`.                               |
+| `lib-get-package-versions.yaml`      | called by other workflows, manual      | Read the versions of the dependencies to test from `dev/config`.                       |
+| `nightly-package.yaml`               | nightly (10:30 UTC), manual            | Test the package published on PyPI: calls the `nightly-test-*` workflows.              |
+| `nightly-test-package.yaml`          | called by `nightly-package.yaml`       | Run the tests against the installed PyPI package.                                      |
+| `nightly-test-package-dep.yaml`      | called by `nightly-package.yaml`       | Test the installed PyPI package with the supported versions of one dependency.         |
+| `release-pypi.yaml`                  | version tag `v*.*.*`, manual           | Run the CI, then build, sign and publish the package to PyPI.                          |
+| `security-audit.yaml`                | weekly (Monday), manual                | Audit the locked dependencies for known vulnerabilities (`pip-audit`).                 |
+| `security-dependency-review.yaml`    | pull request                           | Review the dependencies added by the pull request.                                     |
+| `security-scorecard.yaml`            | weekly, push, branch protection change | OSSF Scorecard supply-chain analysis.                                                  |
+| `bot-cancel-stale-queued-runs.yaml`  | hourly                                 | Cancel the runs that have been queued for too long.                                    |
+| `bot-format-files.yaml`              | weekly (Friday)                        | Format the YAML, Makefile, shell and Markdown files and open a pull request.           |
+| `bot-generate-package-versions.yaml` | weekly (Thursday)                      | Update `dev/config/package_versions.json` and open a pull request.                     |
+| `bot-pin-action.yaml`                | weekly (Wednesday)                     | Pin the actions to a commit SHA (`ratchet`) and open a pull request.                   |
+| `bot-pre-commit-autoupdate.yaml`     | weekly (Tuesday)                       | Update the pre-commit hooks and open a pull request.                                   |
+| `bot-sync-shared-makefile.yaml`      | weekly (Wednesday)                     | Sync the shared Makefile subtree and open a pull request.                              |
+| `bot-update-deps.yaml`               | weekly (Saturday)                      | Update the dependencies (`uv.lock`) and open a pull request.                           |
+
+All the workflows can also be triggered manually (`workflow_dispatch`), except the reusable ones
+that need inputs and the pull request security review.
 
 ## Composite actions vs. reusable workflows
 
@@ -57,10 +97,10 @@ action/reusable workflow over copy-pasting steps.
   runtime tool invoked outside of a pinned action (e.g. `npx <pkg>`) should
   also pin an explicit version, so a bot-authored PR can't pick up an
   unreviewed upstream release.
-- **Permissions**: top-level `permissions:` is always the least the workflow
-  needs — `contents: read` or `{}` — and any job that needs more (e.g.
-  `contents: write` to push, `id-token: write` for OIDC) declares it on that
-  job only, never widening the workflow default.
+- **Permissions**: top-level `permissions:` is always `{}`, and every job
+  declares what it needs (`contents: read` for most; `contents: write` to
+  push, `id-token: write` for OIDC, ...) on that job only, never widening
+  the workflow default.
 - **Timeouts**: every job sets `timeout-minutes`, sized to what the job
   actually does (2 for a config-read job, 5 for most checks, 10 for slower
   jobs like Scorecard or benchmarks) so a hung step can't occupy a runner
@@ -77,8 +117,8 @@ action/reusable workflow over copy-pasting steps.
 Values that would otherwise be duplicated across workflows are centralized in
 `../dev/config`:
 
-- Supported Python versions / OS matrix come from
-  `durandtibo/workflow-config-action`, read once per run by
+- The supported Python versions / OS matrix is not in this directory: it is the default
+  config of `durandtibo/workflow-config-action`, read once per run by
   `lib-get-test-matrix.yaml`.
 - `../dev/config/package_versions.json` — version ranges to test dependencies
   against, read by `lib-get-package-versions.yaml` and kept

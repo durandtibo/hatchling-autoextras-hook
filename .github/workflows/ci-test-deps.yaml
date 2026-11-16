@@ -11,16 +11,19 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   # Get the version bounds of the dependencies from dev/config/package_versions.json,
   # kept up to date by bot-generate-package-versions.yaml.
   get-versions:
+    permissions:
+      contents: read
     uses: ./.github/workflows/lib-get-package-versions.yaml
 
   hatchling:
+    permissions:
+      contents: read
     needs: get-versions
     uses: ./.github/workflows/ci-test-code-dep.yaml
     with:

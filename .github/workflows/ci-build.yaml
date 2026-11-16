@@ -12,17 +12,20 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   # Read the package name from pyproject.toml.
   get-metadata:
+    permissions:
+      contents: read
     uses: ./.github/workflows/lib-get-package-metadata.yaml
 
   # Test the build on every supported Python version, including free-threaded
   # builds (e.g. 3.13t/3.14t), to catch version-specific build regressions.
   build:
+    permissions:
+      contents: read
     needs: get-metadata
     runs-on: ubuntu-latest
     timeout-minutes: 5

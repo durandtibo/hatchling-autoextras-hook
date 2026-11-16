@@ -45,10 +45,10 @@ Contains configuration files for development tools and CI/CD processes.
 
 These scripts are integrated into GitHub Actions workflows for automated testing:
 
-| Script                    | Workflow                                           | Purpose                             |
-| ------------------------- | -------------------------------------------------- | ----------------------------------- |
-| `generate_versions.py`    | `.github/workflows/generate-package-versions.yaml` | Generate version matrix for testing |
-| `tests/package_checks.py` | `.github/workflows/test-package*.yaml`             | Package installation tests          |
+| Script                    | Workflow                                               | Purpose                             |
+| ------------------------- | ------------------------------------------------------ | ----------------------------------- |
+| `generate_versions.py`    | `.github/workflows/bot-generate-package-versions.yaml` | Generate version matrix for testing |
+| `tests/package_checks.py` | `.github/workflows/nightly-test-package*.yaml`         | Package installation tests          |
 
 ## Requirements
 
