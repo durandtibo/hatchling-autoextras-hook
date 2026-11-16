@@ -12,7 +12,7 @@ Guidance for Claude Code when working in this repository.
 - Tests: `tests/unit/` (mirrors the source tree) and `tests/integration/` (builds real projects).
 - Dev tooling: `dev/` (hatchling version matrix generation), `.github/` (workflows), `.make/`
   (shared Makefile includes), `tasks.py` + `invoke.yaml` (invoke tasks).
-- Supported Python: >= 3.10. Supported hatchling: >= 1.18, < 2.0.
+- Supported Python: >= 3.11. Supported hatchling: >= 1.18, < 2.0.
 
 ## Environment
 
