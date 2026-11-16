@@ -1,3 +1,6 @@
 tasklib:
   package:
     name: hatchling_autoextras_hook
+  groups:
+    install: dev
+    update: dev
