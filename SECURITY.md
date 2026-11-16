@@ -19,7 +19,7 @@ We take the security of `hatchling-autoextras-hook` seriously. If you believe yo
 
 Instead, please report them via email to:
 
-- **Email**: durand.tibo+gh@gmail.com
+- **Email**: <durand.tibo+gh@gmail.com>
 
 ### What to Include
 
@@ -85,6 +85,6 @@ We recommend:
 
 For any security concerns or questions, please contact:
 
-- **Email**: durand.tibo+gh@gmail.com
+- **Email**: <durand.tibo+gh@gmail.com>
 
 Thank you for helping keep `hatchling-autoextras-hook` and its users safe!

@@ -1,0 +1,3 @@
+# Long lines in prose and tables are fine; the README uses inline HTML for badges.
+MD013: false
+MD033: false
