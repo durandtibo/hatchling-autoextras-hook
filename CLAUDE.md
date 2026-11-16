@@ -41,7 +41,7 @@ Guidance for Claude Code when working in this repository.
 - Match the style of the surrounding code. Line length is 100; docstrings use the Google style and
   are wrapped at 72 (enforced by `ruff` and `docformatter`).
 - Every public class and function needs a docstring with `Args`, `Returns`, `Raises` as relevant,
-  and a doctest-style example where useful (examples are run by `xdoctest`; use ```` ```pycon ````
+  and a doctest-style example where useful (examples are run by `xdoctest`; use ` ```pycon `
   blocks closed with a blank line, as in `hooks.py`).
 - Document constructor arguments in the class docstring or in `__init__` consistently with
   existing code; keep the documented configuration options in `AutoExtrasMetadataHook` in sync
