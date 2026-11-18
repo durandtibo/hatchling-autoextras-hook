@@ -1,302 +1,321 @@
-# hatchling-autoextras-hook
+# shared-makefiles
 
-<p align="center">
-    <a href="https://github.com/durandtibo/hatchling-autoextras-hook/actions/workflows/ci.yaml">
-        <img alt="CI" src="https://github.com/durandtibo/hatchling-autoextras-hook/actions/workflows/ci.yaml/badge.svg">
-    </a>
-    <a href="https://github.com/durandtibo/hatchling-autoextras-hook/actions/workflows/nightly-tests.yaml">
-        <img alt="Nightly Tests" src="https://github.com/durandtibo/hatchling-autoextras-hook/actions/workflows/nightly-tests.yaml/badge.svg">
-    </a>
-    <a href="https://github.com/durandtibo/hatchling-autoextras-hook/actions/workflows/nightly-package.yaml">
-        <img alt="Nightly Package Tests" src="https://github.com/durandtibo/hatchling-autoextras-hook/actions/workflows/nightly-package.yaml/badge.svg">
-    </a>
-    <a href="https://codecov.io/gh/durandtibo/hatchling-autoextras-hook">
-        <img alt="Codecov" src="https://codecov.io/gh/durandtibo/hatchling-autoextras-hook/branch/main/graph/badge.svg">
-    </a>
-    <br/>
-    <a href="https://github.com/psf/black">
-        <img  alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg">
-    </a>
-    <a href="https://google.github.io/styleguide/pyguide.html#s3.8-comments-and-docstrings">
-        <img  alt="Doc style: google" src="https://img.shields.io/badge/%20style-google-3666d6.svg">
-    </a>
-    <a href="https://github.com/astral-sh/ruff">
-        <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff" style="max-width:100%;">
-    </a>
-    <a href="https://github.com/guilatrova/tryceratops">
-        <img  alt="Doc style: google" src="https://img.shields.io/badge/try%2Fexcept%20style-tryceratops%20%F0%9F%A6%96%E2%9C%A8-black">
-    </a>
-    <br/>
-    <a href="https://pypi.org/project/hatchling-autoextras-hook/">
-        <img alt="PYPI version" src="https://img.shields.io/pypi/v/hatchling-autoextras-hook">
-    </a>
-    <a href="https://pypi.org/project/hatchling-autoextras-hook/">
-        <img alt="Python" src="https://img.shields.io/pypi/pyversions/hatchling-autoextras-hook.svg">
-    </a>
-    <a href="https://opensource.org/licenses/BSD-3-Clause">
-        <img alt="BSD-3-Clause" src="https://img.shields.io/pypi/l/hatchling-autoextras-hook">
-    </a>
-    <br/>
-    <a href="https://pepy.tech/project/hatchling-autoextras-hook">
-        <img  alt="Downloads" src="https://static.pepy.tech/badge/hatchling-autoextras-hook">
-    </a>
-    <a href="https://pepy.tech/project/hatchling-autoextras-hook">
-        <img  alt="Monthly downloads" src="https://static.pepy.tech/badge/hatchling-autoextras-hook/month">
-    </a>
-    <br/>
+[![CI](https://github.com/durandtibo/shared-makefiles/actions/workflows/ci.yaml/badge.svg)](https://github.com/durandtibo/shared-makefiles/actions/workflows/ci.yaml)
+[![Nightly](https://github.com/durandtibo/shared-makefiles/actions/workflows/nightly.yaml/badge.svg)](https://github.com/durandtibo/shared-makefiles/actions/workflows/nightly.yaml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/durandtibo/shared-makefiles/badge)](https://scorecard.dev/viewer/?uri=github.com/durandtibo/shared-makefiles)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/tag/durandtibo/shared-makefiles?label=release)](https://github.com/durandtibo/shared-makefiles/tags)
 
-</p>
+Shared/reusable Makefiles for formatting and linting common file types across projects.
 
-Hatchling metadata hook to automatically generate an `all` extra that combines all optional
-dependencies.
-
-## Overview
-
-This package provides a [Hatchling](https://pypi.org/project/hatchling/) metadata hook that
-automatically creates an `all` extra in your project's optional dependencies.
-The `all` extra will contain all dependencies from all other extras, making it easy for users to
-install all optional features at once.
-
-## Installation
-
-Add this package as a build dependency in your `pyproject.toml`:
-
-```toml
-[build-system]
-requires = ["hatchling>=1.18.0", "hatchling-autoextras-hook"]
-build-backend = "hatchling.build"
-```
+Each file is self-contained, include-guarded, and configurable via variables — pull in only what
+you need.
 
 ## Usage
 
-Enable the hook in your `pyproject.toml`:
+Include `all.mk` to get every target (`format`, `lint`, `install-tools`, `help`, ...), or include
+only the files you need:
 
-```toml
-[tool.hatch.metadata.hooks.autoextras]
+```makefile
+include .make/all.mk
 ```
 
-**Important**: Hatchling metadata hooks are only triggered when there is at least one dynamic field
-in your project metadata. If you don't already have any dynamic fields, you can add `version` as a
-dynamic field:
+Required tools (`prettier`, `yamllint`, `mbake`, `checkmake`, `shellcheck`, `shfmt`, `markdownlint`,
+`actionlint`) are installed on demand — each `format-*`/`lint-*` target depends on an `install-*`
+target that installs the tool if it isn't already on `PATH`, then prints the tool's name, version
+and path. Run `make install-tools` (from `tools.mk`) to install every tool of `TOOLS` upfront;
+include the modules of those tools, or narrow `TOOLS`.
 
-```toml
-[project]
-name = "your-package"
-dynamic = ["version"]
+Run `make help` to list every target that has a `## description` comment (see `help.mk` below).
 
-[tool.hatch.version]
-path = "src/your_package/__init__.py"
+## Adding as a git subtree
+
+This repo is meant to be vendored into consuming projects as a git subtree (conventionally at
+`.make/`), rather than being added as a submodule or copy-pasted:
+
+```shell
+git remote add shared-makefiles https://github.com/durandtibo/shared-makefiles.git
+git fetch shared-makefiles main
+
+git subtree add --prefix=.make shared-makefiles main --squash
 ```
 
-Then add `__version__ = "x.y.z"` to your `__init__.py` file.
+Then `include` the files you need from `.make/` in your project's `Makefile`, e.g.
+`include .make/yaml.mk`.
 
-### Example
+To pull in upstream changes later, `include .make/self.mk` and run `make self-update` — see
+[`self.mk`](#selfmk) below. It fetches the latest commits and runs `git subtree pull`, so you
+don't need to remember the raw `git subtree`/`git remote` invocations yourself.
 
-Given this configuration:
+## Available files
 
-```toml
-[build-system]
-requires = ["hatchling>=1.18.0", "hatchling-autoextras-hook"]
-build-backend = "hatchling.build"
+| File           | Targets                                                               | Tools                      | Description                                                                                                         |
+| -------------- | --------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `yaml.mk`      | `format-yaml`, `lint-yaml`                                            | `prettier`, `yamllint`     | Format and lint YAML files                                                                                          |
+| `makefile.mk`  | `format-makefile`, `lint-makefile`                                    | `mbake`, `checkmake`       | Format and lint Makefiles and `.mk` files                                                                           |
+| `shell.mk`     | `format-shell`, `lint-shell`                                          | `shfmt`, `shellcheck`      | Format and lint shell scripts                                                                                       |
+| `toml.mk`      | `format-toml`                                                         | `taplo`                    | Format TOML files                                                                                                   |
+| `markdown.mk`  | `format-markdown`, `lint-markdown`                                    | `prettier`, `markdownlint` | Format and lint Markdown files                                                                                      |
+| `actions.mk`   | `lint-actions`, `lint-actions-security`                               | `actionlint`, `zizmor`     | Lint GitHub Actions workflow files; audit workflows and composite actions for security issues                       |
+| `git.mk`       | `git-delete-branches`                                                 | `git`                      | Delete all local branches except `main`                                                                             |
+| `github.mk`    | `gh-rerun-failed`                                                     | `gh`                       | Re-run failed/cancelled GitHub Actions runs                                                                         |
+| `uv.mk`        | `install-invoke`, `update-uv`, `setup-venv`                           | `uv`                       | Manage Python virtual environments with `uv`                                                                        |
+| `prettier.mk`  | `install-prettier`                                                    | `prettier`                 | Shared `install-prettier` target, included by `yaml.mk`/`markdown.mk`                                               |
+| `files.mk`     | —                                                                     | —                          | Shared helpers that make the format/lint targets skip the files ignored by `.gitignore` (`USE_GITIGNORE`)           |
+| `tool-info.mk` | —                                                                     | —                          | Shared `show-tool` helper used by the `install-*` targets to print a tool's version and path                        |
+| `self.mk`      | `self-update`, `update-subtree` (deprecated)                          | `git`                      | Sync the `.make` shared-makefiles subtree                                                                           |
+| `tools.mk`     | `install-tools`, `check-tools`, `check-tool-releases`, `update-tools` | —                          | Show which tools are installed and which are missing, and when their versions were released; update installed tools |
+| `all.mk`       | `format`, `lint`                                                      | —                          | Include every module, make `help` the default goal, and define `format` and `lint`                                  |
+| `help.mk`      | `help`                                                                | —                          | List all documented (`## ...`) targets                                                                              |
 
-[project]
-name = "my-package"
-dynamic = ["version"]
+### Ignored files
 
-[project.optional-dependencies]
-dev = ["pytest>=7.0", "black>=22.0"]
-docs = ["sphinx>=5.0", "sphinx-rtd-theme>=1.0"]
-typing = ["mypy>=1.0"]
+By default every format/lint target skips the files ignored by `.gitignore`, in addition to the
+tools' own ignore files (`.prettierignore`, `.markdownlintignore`, the `ignore` key of
+`.yamllint.yaml`, ...). `files.mk` lists the files with `git ls-files` (tracked files and untracked
+files that are not ignored) and falls back to `find` outside a git work tree. `prettier` gets
+`--ignore-path .gitignore --ignore-path .prettierignore`, and `markdownlint` gets an ignore file
+combining the root `.gitignore` and `.markdownlintignore`.
 
-[tool.hatch.version]
-path = "src/my_package/__init__.py"
+| Variable        | Default | Description                                                                |
+| --------------- | ------- | -------------------------------------------------------------------------- |
+| `USE_GITIGNORE` | `1`     | `1` skips the files ignored by `.gitignore`; any other value does not skip |
 
-[tool.hatch.metadata.hooks.autoextras]
+Set it before `include`, or on the command line (`make lint USE_GITIGNORE=0`). It applies to
+`yaml.mk`, `makefile.mk`, `shell.mk`, `toml.mk`, `markdown.mk` and `actions.mk`.
+
+### `yaml.mk`
+
+Optional variables (set before `include`):
+
+| Variable           | Default | Description                                                   |
+| ------------------ | ------- | ------------------------------------------------------------- |
+| `YAML_FORMAT_PATH` | `.`     | Root path globbed for `**/*.{yml,yaml}`, passed to `prettier` |
+| `YAML_LINT_PATH`   | `.`     | Path passed to `yamllint`                                     |
+
+```makefile
+include yaml.mk
+
+YAML_LINT_PATH = .github/workflows
 ```
 
-The hook will automatically generate an `all` extra combining all dependencies:
+### `makefile.mk`
 
-```toml
-[project.optional-dependencies]
-all = [
-    "black>=22.0",
-    "mypy>=1.0",
-    "pytest>=7.0",
-    "sphinx-rtd-theme>=1.0",
-    "sphinx>=5.0",
-]
-# ... dev, docs, typing remain unchanged
+Optional variables (set before `include`):
+
+| Variable                | Default         | Description                    |
+| ----------------------- | --------------- | ------------------------------ |
+| `MAKEFILE_FORMAT_FILES` | `Makefile *.mk` | Files passed to `mbake format` |
+| `MAKEFILE_LINT_FILES`   | `Makefile *.mk` | Files passed to `checkmake`    |
+
+```makefile
+include makefile.mk
+
+MAKEFILE_LINT_FILES = Makefile makefile.mk yaml.mk
 ```
 
-Users can then install all optional dependencies with:
+### `shell.mk`
+
+Optional variables (set before `include`):
+
+| Variable            | Default | Description                                           |
+| ------------------- | ------- | ----------------------------------------------------- |
+| `SHELL_FORMAT_PATH` | `.`     | Path passed to `shfmt` (walked recursively)           |
+| `SHELL_LINT_PATH`   | `.`     | Path searched for `*.sh` files passed to `shellcheck` |
+
+```makefile
+include shell.mk
+
+SHELL_LINT_PATH = scripts
+```
+
+### `toml.mk`
+
+Optional variables (set before `include`):
+
+| Variable           | Default | Description                                        |
+| ------------------ | ------- | -------------------------------------------------- |
+| `TOML_FORMAT_PATH` | `.`     | Path searched for `*.toml` files passed to `taplo` |
+
+```makefile
+include toml.mk
+
+TOML_FORMAT_PATH = config
+```
+
+### `markdown.mk`
+
+Optional variables (set before `include`):
+
+| Variable               | Default   | Description                                           |
+| ---------------------- | --------- | ----------------------------------------------------- |
+| `MARKDOWN_FORMAT_PATH` | `.`       | Root path globbed for `**/*.md`, passed to `prettier` |
+| `MARKDOWN_LINT_GLOB`   | `**/*.md` | Glob passed to `markdownlint`                         |
+
+```makefile
+include markdown.mk
+
+MARKDOWN_LINT_GLOB = docs/**/*.md
+```
+
+### `actions.mk`
+
+Optional variables (set before `include`):
+
+| Variable            | Default | Description                                                                                                                                   |
+| ------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ACTIONS_LINT_PATH` | `.`     | Path searched for `.github/workflows/*.{yml,yaml}` files (`actionlint`, `zizmor`) and `.github/actions/**/action.{yml,yaml}` files (`zizmor`) |
+
+```makefile
+include actions.mk
+
+ACTIONS_LINT_PATH = .
+```
+
+### `git.mk`
+
+`make git-delete-branches` runs `git branch -D` on every local branch except `GIT_MAIN_BRANCH`.
+Unmerged work is lost. The checked-out branch cannot be deleted by git, so it is skipped with a warning.
+
+Optional variables (set before `include`):
+
+| Variable          | Default | Description                          |
+| ----------------- | ------- | ------------------------------------ |
+| `GIT_MAIN_BRANCH` | `main`  | Branch kept by `git-delete-branches` |
+
+### `github.mk`
+
+Requires an authenticated GitHub CLI (`gh auth login`). `gh-rerun-failed` is the equivalent of "Re-run
+failed jobs" in the web UI, applied to the last runs that failed, were cancelled or timed out;
+successful and still-running runs are left alone.
+
+Optional variables (set before `include`, or on the command line):
+
+| Variable              | Default | Description                                              |
+| --------------------- | ------- | -------------------------------------------------------- |
+| `GITHUB_RERUN_LIMIT`  | `5`     | Number of most recent runs considered                    |
+| `GITHUB_RERUN_BRANCH` | empty   | Only consider runs of this branch (empty = all branches) |
+
+```makefile
+include github.mk
+```
 
 ```bash
-pip install your-package[all]
+make gh-rerun-failed                                   # last 5 runs, any branch
+make gh-rerun-failed GITHUB_RERUN_LIMIT=10 GITHUB_RERUN_BRANCH=main
 ```
 
-## Features
+### `uv.mk`
 
-- Automatically combines all optional dependencies
-- Removes duplicates across extras
-- Sorts dependencies alphabetically for consistency
-- Works seamlessly with the Hatchling build system
-- Zero configuration required - just enable the hook
-- Compatible with all Hatchling build targets (wheel, sdist)
+Optional variables (set before `include`):
 
-## Configuration
+| Variable         | Default | Description                                 |
+| ---------------- | ------- | ------------------------------------------- |
+| `PYTHON_VERSION` | `3.14`  | Python version passed to `uv venv --python` |
 
-The hook requires minimal configuration. Simply add it to your `pyproject.toml`:
+```makefile
+include uv.mk
 
-```toml
-[tool.hatch.metadata.hooks.autoextras]
+PYTHON_VERSION = 3.12
 ```
 
-Currently, the hook does not support any additional configuration options. It automatically:
+`install-invoke` installs `uv` on demand and then `invoke>=3.0` and `invoke-tasklib>=0.0.8` via
+`uv pip install` into the active virtual environment (create one first, e.g. with `uv venv`).
+`update-uv` runs `uv self update`. `setup-venv` updates `uv`, creates a fresh `.venv`
+(`uv venv --python $(PYTHON_VERSION) --clear`), installs `invoke` into it, and runs
+`uv run inv env.create-venv` and `uv run inv env.install` — it assumes the project's
+`tasks.py` exposes the `invoke-tasklib` tasks (`from invoke_tasklib import ns`).
 
-- Creates an `all` extra containing all dependencies from all other extras
-- Excludes any pre-existing `all` extra from being included in the new `all` extra
-- Maintains all original extras unchanged
+### `self.mk`
 
-## Advanced Usage
+For projects that vendor this repo as a subtree (e.g. at `.make/`), `self.mk` provides a target
+to pull in upstream changes.
 
-### Excluding the Hook from Certain Extras
+Optional variables (set before `include`):
 
-If you want to manually manage your `all` extra or prevent certain extras from being included,
-you can work around this by using a different extra name (like `all-deps`) and then creating
-your own `all` extra manually.
+| Variable                       | Default                                              | Description     |
+| ------------------------------ | ---------------------------------------------------- | --------------- |
+| `SHARED_MAKEFILES_REMOTE_NAME` | `shared-makefiles`                                   | Git remote name |
+| `SHARED_MAKEFILES_REMOTE_URL`  | `https://github.com/durandtibo/shared-makefiles.git` | Git remote URL  |
+| `SHARED_MAKEFILES_BRANCH`      | `main`                                               | Branch to pull  |
+| `SHARED_MAKEFILES_PREFIX`      | `.make`                                              | Subtree prefix  |
 
-### Using with Other Metadata Hooks
-
-This hook is compatible with other Hatchling metadata hooks. They will run in the order
-specified in your configuration.
-
-## Troubleshooting
-
-### Hook Not Triggering
-
-**Problem**: The `all` extra is not being generated.
-
-**Solutions**:
-
-1. Ensure you have at least one dynamic field in your `[project]` section:
-   ```toml
-   [project]
-   dynamic = ["version"]
-   ```
-   Hatchling metadata hooks only run when there are dynamic fields.
-
-2. Verify the hook is properly registered in your `[build-system]`:
-   ```toml
-   [build-system]
-   requires = ["hatchling>=1.18.0", "hatchling-autoextras-hook"]
-   ```
-
-3. Check that the hook configuration exists:
-   ```toml
-   [tool.hatch.metadata.hooks.autoextras]
-   ```
-
-### `all` Extra Missing Dependencies
-
-**Problem**: Some dependencies are missing from the generated `all` extra.
-
-**Solution**: Ensure all your extras are defined in `[project.optional-dependencies]`.
-The hook only processes extras defined there.
-
-### Build Failures
-
-**Problem**: Build fails with errors related to the hook.
-
-**Solutions**:
-
-1. Verify you're using Hatchling >= 1.18.0
-2. Check that your `pyproject.toml` syntax is correct
-3. Try building with verbose output: `python -m build -v`
-
-## FAQ
-
-### Q: Will this hook override my manually defined `all` extra?
-
-**A:** Yes, if you have a manually defined `all` extra in your `[project.optional-dependencies]`,
-it will be replaced with the auto-generated one. The hook regenerates the `all` extra from all
-other extras each time the build runs.
-
-### Q: Can I exclude specific extras from being included in `all`?
-
-**A:** Not currently. The hook includes all extras by default. If you need this functionality,
-please open a feature request on GitHub.
-
-### Q: Does this work with dependency groups (PEP 735)?
-
-**A:** This hook specifically works with optional dependencies defined in
-`[project.optional-dependencies]`. It does not process dependency groups defined in
-`[dependency-groups]` as those are not part of the package metadata.
-
-### Q: Will this slow down my build process?
-
-**A:** No, the performance impact is negligible. The hook simply collects and sorts dependency
-strings, which is a fast operation even for projects with many extras.
-
-### Q: Can I use this with Poetry or PDM?
-
-**A:** This hook is specifically designed for Hatchling. It won't work with Poetry or PDM's
-build systems. Those tools have their own mechanisms for managing extras.
-
-### Q: How do I verify the hook is working?
-
-**A:** Build your package and inspect the generated wheel's metadata:
-
-```bash
-python -m build
-unzip -p dist/your_package-*.whl '*/METADATA' | grep -A 10 "Provides-Extra: all"
+```makefile
+include self.mk
 ```
 
-### Q: Does this hook modify my source files?
+`self-update` adds the `$(SHARED_MAKEFILES_REMOTE_NAME)` remote if missing, fetches
+`$(SHARED_MAKEFILES_BRANCH)`, and runs `git subtree pull --prefix=$(SHARED_MAKEFILES_PREFIX)
+$(SHARED_MAKEFILES_REMOTE_NAME) $(SHARED_MAKEFILES_BRANCH) --squash` to sync the subtree. It then
+removes the `.github/`, `testdata/` and `tests/` folders and files such as `CODEOWNERS` from within
+`$(SHARED_MAKEFILES_PREFIX)` (not needed in consuming projects) and commits the removal.
 
-**A:** No, the hook only modifies the package metadata during the build process. Your source
-files, including `pyproject.toml`, remain unchanged.
+`update-subtree` is a deprecated alias kept for backward compatibility: it prints a warning and runs
+`self-update`. Migrate to `self-update`; the alias may be removed in a future release.
 
-## Development
+### `tools.mk`
 
-This project uses `uv` for dependency management.
+`make check-tools` looks up each tool of `TOOLS` on the `PATH`, prints one aligned line per tool
+(✅ with its version and path, or ❌ if missing) and exits with code 127 if any is missing.
 
-### Dependencies
+`make check-tool-releases` does the same and adds the release date of each installed version. The
+date is looked up online (GitHub releases, npm or PyPI, per `TOOL_SOURCES`) with `curl`, so it is
+slower than `check-tools`, which stays instant and offline. A date that cannot be found is shown as
+`?` and does not fail the target; set `GITHUB_TOKEN` to avoid GitHub rate limits.
 
-| `hatchling-autoextras-hook` | `hatchling`   | `python`       |
-|-----------------------------|---------------|----------------|
-| `main`                      | `>=1.18,<2.0` | `>=3.10`       |
-| `0.1.3`                     | `>=1.18,<2.0` | `>=3.10`       |
-| `0.1.2`                     | `>=1.18,<2.0` | `>=3.10`       |
-| `0.1.1`                     | `>=1.18,<2.0` | `>=3.10`       |
-| `0.1.0`                     | `>=1.18,<2.0` | `>=3.10`       |
-| `0.0.2`                     | `>=1.18,<2.0` | `>=3.10,<3.15` |
-| `0.0.1`                     | `>=1.18,<2.0` | `>=3.10,<3.15` |
+`make update-tools` upgrades the installed tools of `TOOLS` to their latest version, using the package
+manager that installed each one (Homebrew, npm, pipx, uv, pip or apt). Tools that are not installed
+are skipped, as are tools installed another way (`go install`, a downloaded binary). It carries on
+after a failed upgrade and exits with 1 at the end.
 
-## Contributing
+Optional variables (set before `include`):
 
-Please check the instructions in [CONTRIBUTING.md](.github/CONTRIBUTING.md).
+| Variable          | Default                                                                                           | Description                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `TOOLS`           | `actionlint bats checkmake gh markdownlint mbake prettier shellcheck shfmt taplo yamllint zizmor` | Space-separated tools to check                                                              |
+| `TOOL_SOURCES`    | one entry per default tool                                                                        | `<tool>=<kind>:<id>` entries (`github:owner/repo`, `npm:pkg`, `pypi:pkg`) for release dates |
+| `TOOL_BREW_NAMES` | `bats=bats-core`                                                                                  | `<tool>=<name>` when the Homebrew/apt name differs from the tool (`update-tools`)           |
+| `TOOL_NPM_NAMES`  | `markdownlint=markdownlint-cli taplo=@taplo/cli`                                                  | `<tool>=<package>` when the npm package differs from the tool (`update-tools`)              |
 
-## Suggestions and Communication
+### `help.mk`
 
-Everyone is welcome to contribute to the community.
-If you have any questions or suggestions, you can
-submit [Github Issues](https://github.com/durandtibo/hatchling-autoextras-hook/issues).
-We will reply to you as soon as possible. Thank you very much.
+```makefile
+include help.mk
 
-## API stability
+.PHONY: format
+format: format-yaml ## Format all files
+```
 
-:warning: While `hatchling-autoextras-hook` is in development stage, no API is guaranteed to be
-stable from one release to the next.
-In fact, it is very likely that the API will change multiple times before a stable 1.0.0 release.
-In practice, this means that upgrading `hatchling-autoextras-hook` to a new version will possibly
-break any code that was using the old version of `hatchling-autoextras-hook`.
+`help` scans every included Makefile (`$(MAKEFILE_LIST)`) for lines matching
+`target: ... ## description` and prints them, sorted, as `target` / `description` pairs. Only
+targets with a trailing `## ...` comment show up — add one to any target you want documented. Every
+target defined in this repo's own `.mk` files is already annotated this way, so `include`-ing any
+of them and running `make help` lists them for free.
 
-## Security
+## Design
 
-For information about security policies and how to report vulnerabilities, please see our
-[Security Policy](SECURITY.md).
+- **Include guards** — each file defines an `_MK_INCLUDED` variable so it's safe to `include`
+  more than once (e.g. transitively from multiple project Makefiles).
+- **On-demand install** — every lint/format target depends on an `install-<tool>` target that
+  checks `command -v` before installing, so CI and local runs don't need the tool preinstalled.
+- **Configurable paths** — variables default to sensible project-wide values but can be
+  overridden per project or per target invocation.
+- **`.make/` excluded by default** — this repo is meant to be vendored as a subtree at `.make/`
+  in consuming projects, so every formatter/linter skips that folder by default:
+  [`.prettierignore`](.prettierignore) and [`.markdownlintignore`](.markdownlintignore) exclude
+  it, `.yamllint.yaml` sets `ignore: .make/`, and `shell.mk`'s `find` commands `-prune` it.
+
+## Testing
+
+[`.github/workflows/ci.yaml`](.github/workflows/ci.yaml) exercises every module (one reusable
+`ci-<module>.yaml` workflow each) against the Unix OS matrix (Ubuntu and macOS runners) and, for
+`uv.mk`, the Python versions, resolved dynamically via
+[`durandtibo/workflow-config-action`](https://github.com/durandtibo/workflow-config-action) in
+[`lib-get-test-matrix.yaml`](.github/workflows/lib-get-test-matrix.yaml). It runs on every push/PR
+to `main`, nightly and on demand, running both the lint and format targets (including on-demand
+tool installation) to make sure the rules stay portable across platforms.
 
 ## License
 
-`hatchling-autoextras-hook` is licensed under BSD 3-Clause "New" or "Revised" license available
-in [LICENSE](LICENSE) file.
+This repo is licensed under BSD 3-Clause "New" or "Revised" license available in [LICENSE](LICENSE)
+file.
