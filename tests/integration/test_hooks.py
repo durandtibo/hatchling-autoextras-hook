@@ -1,13 +1,46 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import zipfile
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Mapping
+
+# The integration projects install the hook from this checkout (not from PyPI),
+# so the tests exercise the code of the working tree.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+WARN_ONLY_ENV = "HATCHLING_AUTOEXTRAS_WARN_ONLY"
+
+
+def run_uv_build(
+    path: Path, env: Mapping[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
+    r"""Run ``uv build`` in a project, without checking the result.
+
+    uv does not detect the changes of the sources of a local directory
+    (the cache key is ``pyproject.toml``), so the hook is refreshed to
+    build with the current code.
+
+    Args:
+        path: The path of the project.
+        env: Environment variables added to the environment of the build.
+
+    Returns:
+        The completed process, with the captured output.
+    """
+    return subprocess.run(
+        ["uv", "build", "--refresh-package", "hatchling-autoextras-hook"],  # noqa: S607
+        cwd=path,
+        check=False,
+        capture_output=True,
+        text=True,
+        env={**os.environ, **(env or {})},
+    )
 
 
 def build_minimal_project(path: Path, config: str = "", extra_extras: str = "") -> None:
@@ -20,7 +53,7 @@ def build_minimal_project(path: Path, config: str = "", extra_extras: str = "") 
     """
     path.joinpath("pyproject.toml").write_text(
         f"""[build-system]
-requires = ["hatchling", "hatchling-autoextras-hook>=0.1.3"]
+requires = ["hatchling", "hatchling-autoextras-hook @ {REPO_ROOT.as_uri()}"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
@@ -114,7 +147,7 @@ def test_autoextras_integration(tmp_path: Path) -> None:
     # ----------------------------------------------------------------------
     # 2. Build the wheel using uv build
     # ----------------------------------------------------------------------
-    subprocess.run(["uv", "build"], cwd=path, check=True)  # noqa: S607
+    run_uv_build(path).check_returncode()
     # ----------------------------------------------------------------------
     # 3. Find the generated wheel in dist/
     # ----------------------------------------------------------------------
@@ -143,7 +176,7 @@ def test_autoextras_integration_custom_name(tmp_path: Path) -> None:
     # ----------------------------------------------------------------------
     # 2. Build the wheel using uv build
     # ----------------------------------------------------------------------
-    subprocess.run(["uv", "build"], cwd=path, check=True)  # noqa: S607
+    run_uv_build(path).check_returncode()
     # ----------------------------------------------------------------------
     # 3. Find the generated wheel in dist/
     # ----------------------------------------------------------------------
@@ -162,8 +195,30 @@ def build_wheel_metadata(path: Path, config: str = "", extra_extras: str = "") -
     r"""Build a project and return the wheel metadata."""
     path.mkdir(exist_ok=True, parents=True)
     build_minimal_project(path, config=config, extra_extras=extra_extras)
-    subprocess.run(["uv", "build"], cwd=path, check=True)  # noqa: S607
+    run_uv_build(path).check_returncode()
     return read_metadata(find_wheel_path(path))
+
+
+def build_project(
+    path: Path,
+    config: str = "",
+    extra_extras: str = "",
+    env: Mapping[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    r"""Build a project and return the result without checking it.
+
+    Args:
+        path: The path where to build the project.
+        config: Extra lines for the ``autoextras`` hook table.
+        extra_extras: Extra lines for the optional dependencies table.
+        env: Environment variables added to the environment of the build.
+
+    Returns:
+        The completed process, with the captured output.
+    """
+    path.mkdir(exist_ok=True, parents=True)
+    build_minimal_project(path, config=config, extra_extras=extra_extras)
+    return run_uv_build(path, env)
 
 
 def test_autoextras_integration_exclude(tmp_path: Path) -> None:
@@ -184,13 +239,7 @@ def test_autoextras_integration_existing_group_fails(tmp_path: Path) -> None:
     path = tmp_path / "project"
     path.mkdir(parents=True)
     build_minimal_project(path, extra_extras='all = [ "old-dep" ]')
-    result = subprocess.run(
-        ["uv", "build"],  # noqa: S607
-        cwd=path,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    result = run_uv_build(path)
     assert result.returncode != 0
     assert "already exists" in result.stdout + result.stderr
 
@@ -202,6 +251,31 @@ def test_autoextras_integration_overwrite(tmp_path: Path) -> None:
     )
     validate_metadata(metadata)
     assert "old-dep" not in metadata
+
+
+def test_autoextras_integration_unknown_option_fails(tmp_path: Path) -> None:
+    r"""An unknown option must fail the build and name the option."""
+    result = build_project(tmp_path / "project", config='excludes = ["dev"]')
+    assert result.returncode != 0
+    assert "Unknown option(s): ['excludes']" in result.stdout + result.stderr
+
+
+def test_autoextras_integration_unknown_option_warn_only(tmp_path: Path) -> None:
+    r"""With the warn-only variable, the build succeeds, warns, and the
+    unknown option is ignored."""
+    result = build_project(
+        tmp_path / "project", config='excludes = ["dev"]', env={WARN_ONLY_ENV: "1"}
+    )
+    assert result.returncode == 0
+    assert "Unknown option(s): ['excludes']" in result.stdout + result.stderr
+
+
+def test_autoextras_integration_unknown_option_warn_only_metadata(tmp_path: Path) -> None:
+    r"""The metadata built in warn-only mode is the one of a build
+    without the unknown option."""
+    build_project(tmp_path / "typo", config='excludes = ["dev"]', env={WARN_ONLY_ENV: "1"})
+    expected = build_wheel_metadata(tmp_path / "clean")
+    assert read_metadata(find_wheel_path(tmp_path / "typo")) == expected
 
 
 #######################################

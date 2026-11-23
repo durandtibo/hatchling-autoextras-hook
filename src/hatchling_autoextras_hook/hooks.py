@@ -4,13 +4,25 @@ from __future__ import annotations
 
 __all__ = ["AutoExtrasMetadataHook"]
 
+import copy
 import logging
+import os
+import warnings
 from typing import Any
 
 from hatchling.metadata.plugin.interface import MetadataHookInterface
 from hatchling.plugin import hookimpl
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+# The options of the hook and their default values. This table is the single
+# source of truth for the allowed keys of the hook table.
+_DEFAULTS: dict[str, Any] = {"group-name": "all", "exclude": [], "overwrite": False}
+
+# Environment variable that downgrades the recoverable problems to warnings.
+_WARN_ONLY_ENV = "HATCHLING_AUTOEXTRAS_WARN_ONLY"
+_WARN_ONLY_TRUE = frozenset({"1", "true", "yes", "on"})
+_WARN_ONLY_FALSE = frozenset({"0", "false", "no", "off", ""})
 
 
 class AutoExtrasMetadataHook(MetadataHookInterface):
@@ -23,6 +35,13 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         group-name: Name of the combined extras group (default: "all")
         exclude: List of extra names to exclude from the combined group (default: [])
         overwrite: Whether to overwrite existing group (default: False)
+
+    Unknown options are rejected with a ``ValueError``. Setting the
+    environment variable ``HATCHLING_AUTOEXTRAS_WARN_ONLY`` to ``1``,
+    ``true``, ``yes`` or ``on`` downgrades the recoverable problems
+    (currently the unknown options) to a ``UserWarning``. ``0``,
+    ``false``, ``no``, ``off``, an empty value or an unset variable
+    keep the strict mode. Any other value raises a ``ValueError``.
 
     Example configuration:
         [tool.hatch.metadata.hooks.autoextras]
@@ -59,11 +78,34 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             config: The plugin configuration dictionary.
 
         Raises:
-            ValueError: If the configuration is invalid.
+            ValueError: If the configuration is invalid, or if the
+                environment variable ``HATCHLING_AUTOEXTRAS_WARN_ONLY``
+                has an unrecognized value.
             TypeError: If the configuration is invalid.
         """
-        super().__init__(root, {"group-name": "all", "exclude": [], "overwrite": False} | config)
+        self._warn_only: bool = _read_warn_only()
+        unknown = sorted(config.keys() - _DEFAULTS.keys())
+        if unknown:
+            self._report(f"Unknown option(s): {unknown}. Valid options: {sorted(_DEFAULTS)}")
+        known = {key: value for key, value in config.items() if key in _DEFAULTS}
+        super().__init__(root, copy.deepcopy(_DEFAULTS) | known)
         self._validate_config()
+
+    def _report(self, msg: str) -> None:
+        """Report a recoverable problem.
+
+        The problem raises a ``ValueError`` by default. In warn-only
+        mode, it emits a ``UserWarning`` and the build continues.
+
+        Args:
+            msg: The message that describes the problem.
+
+        Raises:
+            ValueError: If the warn-only mode is not enabled.
+        """
+        if not self._warn_only:
+            raise ValueError(msg)
+        warnings.warn(msg, UserWarning, stacklevel=2)
 
     def _validate_config(self) -> None:
         """Validate the plugin configuration.
@@ -78,11 +120,7 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             raise ValueError(msg)
 
         exclude = self.config["exclude"]
-        if not isinstance(exclude, list):
-            msg = "'exclude' must be a list of extra names"
-            raise TypeError(msg)
-
-        if not all(isinstance(name, str) for name in exclude):
+        if not isinstance(exclude, list) or not all(isinstance(name, str) for name in exclude):
             msg = "'exclude' must be a list of extra names"
             raise TypeError(msg)
 
@@ -168,6 +206,46 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             len(processed_extras),
             processed_extras,
         )
+
+
+def _read_warn_only() -> bool:
+    r"""Read the warn-only mode from the environment.
+
+    Returns:
+        ``True`` if ``HATCHLING_AUTOEXTRAS_WARN_ONLY`` is set to ``1``,
+            ``true``, ``yes`` or ``on`` (case-insensitive), ``False`` if
+            it is unset, empty or set to ``0``, ``false``, ``no`` or
+            ``off``.
+
+    Raises:
+        ValueError: If the variable has any other value.
+
+    Example usage:
+
+    ```pycon
+
+    >>> import os
+    >>> from hatchling_autoextras_hook.hooks import _read_warn_only
+    >>> os.environ["HATCHLING_AUTOEXTRAS_WARN_ONLY"] = "On"
+    >>> _read_warn_only()
+    True
+    >>> del os.environ["HATCHLING_AUTOEXTRAS_WARN_ONLY"]
+    >>> _read_warn_only()
+    False
+
+    ```
+    """
+    value = os.environ.get(_WARN_ONLY_ENV, "").strip().lower()
+    if value in _WARN_ONLY_TRUE:
+        return True
+    if value in _WARN_ONLY_FALSE:
+        return False
+    msg = (
+        f"Invalid value {os.environ[_WARN_ONLY_ENV]!r} for the environment variable "
+        f"{_WARN_ONLY_ENV}. Use one of {sorted(_WARN_ONLY_TRUE | _WARN_ONLY_FALSE - {''})} "
+        "(or leave it unset)"
+    )
+    raise ValueError(msg)
 
 
 @hookimpl
