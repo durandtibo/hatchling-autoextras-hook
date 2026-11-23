@@ -7,6 +7,7 @@ from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 from hatchling_autoextras_hook.hooks import (
     AutoExtrasMetadataHook,
+    _dependencies,
     _normalize,
     _read_warn_only,
     hatch_register_metadata_hook,
@@ -272,18 +273,6 @@ def test_update_strips_whitespace() -> None:
     assert metadata["optional-dependencies"]["all"] == ["pytest>=7.0"]
 
 
-def test_update_ignores_non_string_dependencies() -> None:
-    metadata = {"optional-dependencies": {"dev": ["pytest", 1, None, "black"]}}
-    AutoExtrasMetadataHook("test", {}).update(metadata)
-    assert metadata["optional-dependencies"]["all"] == ["black", "pytest"]
-
-
-def test_update_exclude_unknown_extra_is_ignored() -> None:
-    metadata = {"optional-dependencies": {"dev": ["pytest"]}}
-    AutoExtrasMetadataHook("test", {"exclude": ["missing"]}).update(metadata)
-    assert metadata["optional-dependencies"]["all"] == ["pytest"]
-
-
 def test_update_exclude_all_extras() -> None:
     metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"]}}
     AutoExtrasMetadataHook("test", {"exclude": ["dev", "docs"]}).update(metadata)
@@ -359,12 +348,6 @@ def test_update_invalid_extra_dependencies(deps: object) -> None:
 def test_update_invalid_optional_dependencies(optional: object) -> None:
     with pytest.raises(TypeError, match=r"'optional-dependencies' must be a table"):
         AutoExtrasMetadataHook("test", {}).update({"optional-dependencies": optional})
-
-
-def test_update_drops_blank_dependencies() -> None:
-    metadata = {"optional-dependencies": {"dev": ["", "  ", "pytest"]}}
-    AutoExtrasMetadataHook("test", {}).update(metadata)
-    assert metadata["optional-dependencies"]["all"] == ["pytest"]
 
 
 def test_update_failure_leaves_metadata_unchanged() -> None:
@@ -616,3 +599,237 @@ def test_update_custom_group_name_with_exclude() -> None:
             "full": ["boto3"],
         }
     }
+
+
+###############################
+#     Tests for _dependencies #
+###############################
+
+
+def test_dependencies_strips_items() -> None:
+    assert _dependencies("dev", ["  pytest>=7.0 ", "black"]) == ["pytest>=7.0", "black"]
+
+
+def test_dependencies_empty_list() -> None:
+    assert _dependencies("dev", []) == []
+
+
+def test_dependencies_keeps_duplicates() -> None:
+    assert _dependencies("dev", ["pytest", " pytest"]) == ["pytest", "pytest"]
+
+
+@pytest.mark.parametrize("value", ["pytest", ("pytest",), None, 1, {"pytest"}])
+def test_dependencies_not_a_list_raises(value: object) -> None:
+    with pytest.raises(TypeError, match=r"Dependencies of extra 'dev' must be a list of strings"):
+        _dependencies("dev", value)
+
+
+@pytest.mark.parametrize("item", [1, None, 1.5, ["pytest"], b"pytest"])
+def test_dependencies_non_string_item_raises(item: object) -> None:
+    with pytest.raises(TypeError, match=r"Dependency #2 of extra 'dev' must be a string"):
+        _dependencies("dev", ["pytest", item])
+
+
+@pytest.mark.parametrize("item", ["", " ", "\t\n"])
+def test_dependencies_blank_item_raises(item: str) -> None:
+    with pytest.raises(ValueError, match=r"Dependency #2 of extra 'dev' must not be blank"):
+        _dependencies("dev", ["pytest", item])
+
+
+def test_dependencies_error_names_the_extra() -> None:
+    with pytest.raises(TypeError, match=r"Dependency #1 of extra 'my-extra'"):
+        _dependencies("my-extra", [1])
+
+
+###################################
+#     Tests for strict extras     #
+###################################
+
+
+def test_update_non_string_dependency_raises() -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest", 1, None, "black"]}}
+    with pytest.raises(TypeError, match=r"Dependency #2 of extra 'dev' must be a string"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+
+
+def test_update_blank_dependency_raises() -> None:
+    metadata = {"optional-dependencies": {"dev": ["", "  ", "pytest"]}}
+    with pytest.raises(ValueError, match=r"Dependency #1 of extra 'dev' must not be blank"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+
+
+def test_update_invalid_dependency_leaves_metadata_unchanged() -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx", " "]}}
+    with pytest.raises(ValueError, match=r"must not be blank"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+    assert metadata == {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx", " "]}}
+
+
+def test_update_invalid_dependency_with_overwrite_leaves_metadata_unchanged() -> None:
+    metadata = {"optional-dependencies": {"All": ["old"], "dev": [1]}}
+    with pytest.raises(TypeError, match=r"must be a string"):
+        AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
+    assert metadata == {"optional-dependencies": {"All": ["old"], "dev": [1]}}
+
+
+def test_update_invalid_excluded_extra_is_not_inspected() -> None:
+    metadata = {"optional-dependencies": {"dev": [1, " "], "docs": ["sphinx"]}}
+    AutoExtrasMetadataHook("test", {"exclude": ["dev"]}).update(metadata)
+    assert metadata == {
+        "optional-dependencies": {"dev": [1, " "], "docs": ["sphinx"], "all": ["sphinx"]}
+    }
+
+
+def test_update_invalid_generated_extra_is_not_inspected() -> None:
+    metadata = {"optional-dependencies": {"all": [1, " "], "docs": ["sphinx"]}}
+    AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
+    assert metadata == {"optional-dependencies": {"all": ["sphinx"], "docs": ["sphinx"]}}
+
+
+def test_update_exclude_unmatched_raises() -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest"]}}
+    with pytest.raises(ValueError, match=r"match no extra: \['missing'\]"):
+        AutoExtrasMetadataHook("test", {"exclude": ["missing"]}).update(metadata)
+
+
+def test_update_exclude_unmatched_are_listed_sorted() -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest"]}}
+    with pytest.raises(ValueError, match=r"match no extra: \['a', 'z'\]"):
+        AutoExtrasMetadataHook("test", {"exclude": ["z", "dev", "a"]}).update(metadata)
+
+
+def test_update_exclude_unmatched_leaves_metadata_unchanged() -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest"]}}
+    with pytest.raises(ValueError, match=r"match no extra"):
+        AutoExtrasMetadataHook("test", {"exclude": ["tset"]}).update(metadata)
+    assert metadata == {"optional-dependencies": {"dev": ["pytest"]}}
+
+
+def test_update_exclude_without_optional_dependencies_raises() -> None:
+    with pytest.raises(ValueError, match=r"match no extra: \['dev'\]"):
+        AutoExtrasMetadataHook("test", {"exclude": ["dev"]}).update({})
+
+
+def test_update_exclude_matches_extra_with_other_spelling() -> None:
+    metadata = {"optional-dependencies": {"Dev_Extra": ["pytest"], "docs": ["sphinx"]}}
+    AutoExtrasMetadataHook("test", {"exclude": ["dev.extra"]}).update(metadata)
+    assert metadata["optional-dependencies"]["all"] == ["sphinx"]
+
+
+def test_update_exclude_unmatched_warn_only_warns(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    metadata = {"optional-dependencies": {"dev": ["pytest"]}}
+    hook = AutoExtrasMetadataHook("test", {"exclude": ["missing"]})
+    with pytest.warns(UserWarning, match=r"match no extra: \['missing'\]"):
+        hook.update(metadata)
+
+
+def test_update_exclude_unmatched_warn_only_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"]}}
+    hook = AutoExtrasMetadataHook("test", {"exclude": ["docs", "missing"]})
+    with pytest.warns(UserWarning, match=r"match no extra"):
+        hook.update(metadata)
+    assert metadata == {
+        "optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"], "all": ["pytest"]}
+    }
+
+
+def test_update_warn_only_does_not_downgrade_conflict(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    metadata = {"optional-dependencies": {"all": ["old"]}}
+    with pytest.raises(RuntimeError, match=r"already exists"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+
+
+def test_update_warn_only_does_not_downgrade_invalid_extra(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    metadata = {"optional-dependencies": {"dev": "pytest"}}
+    with pytest.raises(TypeError, match=r"must be a list of strings"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+
+
+def test_update_warn_only_does_not_downgrade_invalid_dependency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    metadata = {"optional-dependencies": {"dev": [1]}}
+    with pytest.raises(TypeError, match=r"must be a string"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+
+
+@pytest.mark.parametrize(
+    "extras",
+    [
+        {"dev": ["pytest", "black"], "docs": ["sphinx"]},
+        {"docs": ["sphinx"], "dev": ["black", "pytest"]},
+    ],
+)
+def test_update_result_does_not_depend_on_the_order_of_the_extras(extras: dict) -> None:
+    metadata = {"optional-dependencies": extras}
+    AutoExtrasMetadataHook("test", {}).update(metadata)
+    assert metadata["optional-dependencies"]["all"] == ["black", "pytest", "sphinx"]
+
+
+def test_update_whole_output_with_every_option() -> None:
+    metadata = {
+        "name": "pkg",
+        "optional-dependencies": {
+            "Full": ["old"],
+            "dev": ["pytest", " black "],
+            "test": ["pytest", "coverage"],
+            "docs": ["sphinx"],
+        },
+    }
+    hook = AutoExtrasMetadataHook(
+        "test", {"group-name": "full", "exclude": ["DOCS"], "overwrite": True}
+    )
+    hook.update(metadata)
+    assert metadata == {
+        "name": "pkg",
+        "optional-dependencies": {
+            "dev": ["pytest", " black "],
+            "test": ["pytest", "coverage"],
+            "docs": ["sphinx"],
+            "full": ["black", "coverage", "pytest"],
+        },
+    }
+
+
+def test_update_hook_can_be_reused() -> None:
+    hook = AutoExtrasMetadataHook("test", {})
+    metadata1 = {"optional-dependencies": {"dev": ["pytest"]}}
+    metadata2 = {"optional-dependencies": {"docs": ["sphinx"]}}
+    hook.update(metadata1)
+    hook.update(metadata2)
+    assert metadata2 == {"optional-dependencies": {"docs": ["sphinx"], "all": ["sphinx"]}}
+
+
+def test_update_second_call_without_overwrite_raises() -> None:
+    hook = AutoExtrasMetadataHook("test", {})
+    metadata = {"optional-dependencies": {"dev": ["pytest"]}}
+    hook.update(metadata)
+    with pytest.raises(RuntimeError, match=r"already exists"):
+        hook.update(metadata)
+
+
+def test_update_does_not_use_the_previous_content_of_the_generated_extra() -> None:
+    metadata = {"optional-dependencies": {"all": ["old"], "dev": ["pytest"]}}
+    AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
+    assert "old" not in metadata["optional-dependencies"]["all"]
+
+
+def test_update_logs_debug_lists_the_extras(caplog: pytest.LogCaptureFixture) -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"]}}
+    with caplog.at_level(logging.DEBUG, logger="hatchling_autoextras_hook.hooks"):
+        AutoExtrasMetadataHook("test", {"exclude": ["docs"]}).update(metadata)
+    assert "Created 'all' with 1 dependencies from 1 extras: ['dev']" in caplog.text
+
+
+def test_update_logs_overwrite_only_with_overwrite(caplog: pytest.LogCaptureFixture) -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest"]}}
+    with caplog.at_level(logging.DEBUG, logger="hatchling_autoextras_hook.hooks"):
+        AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
+    assert "Overwriting" not in caplog.text
