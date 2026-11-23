@@ -257,14 +257,20 @@ def test_update_with_exclude() -> None:
     }
 
 
+def test_hatch_register_metadata_hook_returns_a_class() -> None:
+    """The plugin registration function returns a class."""
+    assert isinstance(hatch_register_metadata_hook(), type)
+
+
 def test_hatch_register_metadata_hook_returns_correct_class() -> None:
-    """Ensure the plugin registration function returns the correct hook
-    class."""
-    hook_class = hatch_register_metadata_hook()
-    # The returned object must be a class
-    assert isinstance(hook_class, type)
-    assert hook_class is AutoExtrasMetadataHook
-    assert issubclass(hook_class, MetadataHookInterface)
+    """The plugin registration function returns the hook class."""
+    assert hatch_register_metadata_hook() is AutoExtrasMetadataHook
+
+
+def test_hatch_register_metadata_hook_returns_a_hook_interface() -> None:
+    """The class returned by the plugin registration function is a
+    hatchling metadata hook."""
+    assert issubclass(hatch_register_metadata_hook(), MetadataHookInterface)
 
 
 def test_update_strips_whitespace() -> None:
@@ -290,10 +296,23 @@ def test_update_does_not_overwrite_custom_group() -> None:
     hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
     with pytest.raises(
         ValueError, match=r"Cannot create the 'complete' extra: 'complete' already exists"
-    ) as exc_info:
+    ):
         hook.update(metadata)
-    assert "overwrite = true" in str(exc_info.value)
-    assert metadata["optional-dependencies"]["complete"] == ["old"]
+
+
+def test_update_does_not_overwrite_custom_group_suggests_overwrite() -> None:
+    metadata = {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
+    hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
+    with pytest.raises(ValueError, match=r"overwrite = true"):
+        hook.update(metadata)
+
+
+def test_update_does_not_overwrite_custom_group_leaves_metadata_unchanged() -> None:
+    metadata = {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
+    hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
+    with pytest.raises(ValueError, match=r"already exists"):
+        hook.update(metadata)
+    assert metadata == {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
 
 
 def test_update_all_exists_when_custom_group_name() -> None:
@@ -354,7 +373,7 @@ def test_update_invalid_optional_dependencies(optional: object) -> None:
 
 def test_update_failure_leaves_metadata_unchanged() -> None:
     metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": "sphinx"}}
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"must be a list of strings"):
         AutoExtrasMetadataHook("test", {}).update(metadata)
     assert metadata == {"optional-dependencies": {"dev": ["pytest"], "docs": "sphinx"}}
 
