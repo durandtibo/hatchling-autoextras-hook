@@ -5,16 +5,22 @@ Properties of the hook:
 - **Union of the extras**: the generated extra contains every
   dependency string of every non-excluded extra, and nothing else. It
   never contains its own previous content. The strings are copied, not
-  interpreted (see the self-references below).
-- **Deterministic**: the output is the sorted list of the distinct
-  dependency strings, whatever the order of the extras. The generated
-  extra is always the last key of the table, whether it is new,
-  replaced or renamed by ``overwrite``.
+  interpreted (see the self-references below). If there is nothing to
+  collect, the generated extra is empty, so that ``pkg[all]`` stays
+  installable.
+- **Deterministic**: the output is the list of the distinct stripped
+  dependency strings, sorted as strings (code point order, so ``Zed``
+  comes before ``alpha``), whatever the order of the extras. The
+  generated extra is always the last key of the table, whether it is
+  new, replaced or renamed by ``overwrite``.
 - **Additive**: the original extras are never modified, reordered or
   removed. Only the generated extra is added (or replaced when
   ``overwrite = true``).
 - **Atomic**: ``update`` either completes or raises with ``metadata``
   unchanged.
+- **Idempotent on request**: with ``overwrite = true``, running
+  ``update`` again on its own output gives the same metadata. With
+  ``overwrite = false`` the second run raises, because the extra exists.
 - **Name-normalized**: the extra names are compared after the
   normalization of PEP 685 (``Dev_Extra``, ``dev-extra`` and
   ``dev.extra`` are the same extra).
@@ -24,6 +30,10 @@ Properties of the hook:
 - **Lenient on request**: with ``HATCHLING_AUTOEXTRAS_WARN_ONLY=1``,
   the two recoverable problems (unknown option, unmatched ``exclude``
   entry) emit a ``UserWarning``. Every other problem still raises.
+- **Output-invariant**: the warn-only mode never changes the generated
+  extra. A build that succeeds in both modes produces the same
+  metadata: the mode only turns an error into a warning for a problem
+  that has no effect on the result.
 - **Early and named errors**: the configuration errors are raised when
   the hook is created, before any metadata is read. Every message of a
   configuration problem names the option and the table
@@ -100,13 +110,11 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
     the same extra. This applies to ``extra-name``, ``exclude`` and to
     the check of an existing extra with the generated name.
 
-    Unknown options are rejected with a ``ValueError``. Setting the
-    environment variable ``HATCHLING_AUTOEXTRAS_WARN_ONLY`` to ``1``,
-    ``true``, ``yes`` or ``on`` downgrades the recoverable problems
-    (the unknown options and the ``exclude`` entries that match no
-    extra) to a ``UserWarning``. ``0``,
-    ``false``, ``no``, ``off``, an empty value or an unset variable
-    keep the strict mode. Any other value raises a ``ValueError``.
+    Unknown options are rejected with a ``ValueError``. The environment
+    variable ``HATCHLING_AUTOEXTRAS_WARN_ONLY`` downgrades the
+    recoverable problems to a ``UserWarning``: see the properties in the
+    module docstring and "Strict and warn-only modes" in the README for
+    the accepted values.
 
     Example configuration:
         [tool.hatch.metadata.hooks.autoextras]
@@ -118,7 +126,7 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
     ```pycon
 
-    >>> from hatchling_autoextras_hook.hooks import AutoExtrasMetadataHook
+    >>> from hatchling_autoextras_hook import AutoExtrasMetadataHook
     >>> metadata = {
     ...     "optional-dependencies": {
     ...         "dev": ["pytest>=7.0", "black>=22.0"],
@@ -222,7 +230,7 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         This method collects all dependencies from all optional extras
         (excluding any existing extra with the configured name and any
         extras in the exclude list), removes duplicate strings, sorts
-        them alphabetically, and creates/updates the generated extra with
+        them as strings, and creates/updates the generated extra with
         the combined list. Two dependencies are duplicates if they are
         the same string after stripping the whitespace around them:
         the requirements are not parsed, hatchling merges the
