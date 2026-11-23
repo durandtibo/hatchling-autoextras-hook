@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 
 import pytest
@@ -257,14 +258,20 @@ def test_update_with_exclude() -> None:
     }
 
 
+def test_hatch_register_metadata_hook_returns_a_class() -> None:
+    """The plugin registration function returns a class."""
+    assert isinstance(hatch_register_metadata_hook(), type)
+
+
 def test_hatch_register_metadata_hook_returns_correct_class() -> None:
-    """Ensure the plugin registration function returns the correct hook
-    class."""
-    hook_class = hatch_register_metadata_hook()
-    # The returned object must be a class
-    assert isinstance(hook_class, type)
-    assert hook_class is AutoExtrasMetadataHook
-    assert issubclass(hook_class, MetadataHookInterface)
+    """The plugin registration function returns the hook class."""
+    assert hatch_register_metadata_hook() is AutoExtrasMetadataHook
+
+
+def test_hatch_register_metadata_hook_returns_a_hook_interface() -> None:
+    """The class returned by the plugin registration function is a
+    hatchling metadata hook."""
+    assert issubclass(hatch_register_metadata_hook(), MetadataHookInterface)
 
 
 def test_update_strips_whitespace() -> None:
@@ -290,10 +297,23 @@ def test_update_does_not_overwrite_custom_group() -> None:
     hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
     with pytest.raises(
         ValueError, match=r"Cannot create the 'complete' extra: 'complete' already exists"
-    ) as exc_info:
+    ):
         hook.update(metadata)
-    assert "overwrite = true" in str(exc_info.value)
-    assert metadata["optional-dependencies"]["complete"] == ["old"]
+
+
+def test_update_does_not_overwrite_custom_group_suggests_overwrite() -> None:
+    metadata = {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
+    hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
+    with pytest.raises(ValueError, match=r"overwrite = true"):
+        hook.update(metadata)
+
+
+def test_update_does_not_overwrite_custom_group_leaves_metadata_unchanged() -> None:
+    metadata = {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
+    hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
+    with contextlib.suppress(ValueError):
+        hook.update(metadata)
+    assert metadata == {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
 
 
 def test_update_all_exists_when_custom_group_name() -> None:
@@ -354,7 +374,7 @@ def test_update_invalid_optional_dependencies(optional: object) -> None:
 
 def test_update_failure_leaves_metadata_unchanged() -> None:
     metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": "sphinx"}}
-    with pytest.raises(TypeError):
+    with contextlib.suppress(TypeError):
         AutoExtrasMetadataHook("test", {}).update(metadata)
     assert metadata == {"optional-dependencies": {"dev": ["pytest"], "docs": "sphinx"}}
 
@@ -399,18 +419,18 @@ def test_unknown_option_warn_only_warns(monkeypatch: pytest.MonkeyPatch) -> None
         AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
 
 
+@pytest.mark.filterwarnings("ignore:Unknown option")
 def test_unknown_option_warn_only_is_dropped_from_config(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(WARN_ONLY_ENV, "1")
-    with pytest.warns(UserWarning, match=r"Unknown option"):
-        hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"], "group-name": "full"})
+    hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"], "group-name": "full"})
     assert hook.config == {"group-name": "full", "exclude": [], "overwrite": False}
 
 
+@pytest.mark.filterwarnings("ignore:Unknown option")
 def test_unknown_option_warn_only_ignores_the_option(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(WARN_ONLY_ENV, "1")
     metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"]}}
-    with pytest.warns(UserWarning, match=r"Unknown option"):
-        hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
+    hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
     hook.update(metadata)
     assert metadata == {
         "optional-dependencies": {
@@ -558,7 +578,7 @@ def test_update_conflict_is_case_insensitive() -> None:
 
 def test_update_conflict_failure_leaves_metadata_unchanged() -> None:
     metadata = {"optional-dependencies": {"All": ["old"], "dev": ["pytest"]}}
-    with pytest.raises(ValueError, match=r"already exists"):
+    with contextlib.suppress(ValueError):
         AutoExtrasMetadataHook("test", {}).update(metadata)
     assert metadata == {"optional-dependencies": {"All": ["old"], "dev": ["pytest"]}}
 
@@ -662,16 +682,28 @@ def test_update_blank_dependency_raises() -> None:
         AutoExtrasMetadataHook("test", {}).update(metadata)
 
 
+def test_update_invalid_dependency_raises() -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx", " "]}}
+    with pytest.raises(ValueError, match=r"Dependency #2 of extra 'docs' must not be blank"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+
+
 def test_update_invalid_dependency_leaves_metadata_unchanged() -> None:
     metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx", " "]}}
-    with pytest.raises(ValueError, match=r"must not be blank"):
+    with contextlib.suppress(ValueError):
         AutoExtrasMetadataHook("test", {}).update(metadata)
     assert metadata == {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx", " "]}}
 
 
+def test_update_invalid_dependency_with_overwrite_raises() -> None:
+    metadata = {"optional-dependencies": {"All": ["old"], "dev": [1]}}
+    with pytest.raises(TypeError, match=r"Dependency #1 of extra 'dev' must be a string"):
+        AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
+
+
 def test_update_invalid_dependency_with_overwrite_leaves_metadata_unchanged() -> None:
     metadata = {"optional-dependencies": {"All": ["old"], "dev": [1]}}
-    with pytest.raises(TypeError, match=r"must be a string"):
+    with contextlib.suppress(TypeError):
         AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
     assert metadata == {"optional-dependencies": {"All": ["old"], "dev": [1]}}
 
@@ -704,7 +736,7 @@ def test_update_exclude_unmatched_are_listed_sorted() -> None:
 
 def test_update_exclude_unmatched_leaves_metadata_unchanged() -> None:
     metadata = {"optional-dependencies": {"dev": ["pytest"]}}
-    with pytest.raises(ValueError, match=r"match no extra"):
+    with contextlib.suppress(ValueError):
         AutoExtrasMetadataHook("test", {"exclude": ["tset"]}).update(metadata)
     assert metadata == {"optional-dependencies": {"dev": ["pytest"]}}
 
@@ -728,12 +760,12 @@ def test_update_exclude_unmatched_warn_only_warns(monkeypatch: pytest.MonkeyPatc
         hook.update(metadata)
 
 
+@pytest.mark.filterwarnings("ignore:.*match no extra")
 def test_update_exclude_unmatched_warn_only_result(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(WARN_ONLY_ENV, "1")
     metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"]}}
     hook = AutoExtrasMetadataHook("test", {"exclude": ["docs", "missing"]})
-    with pytest.warns(UserWarning, match=r"match no extra"):
-        hook.update(metadata)
+    hook.update(metadata)
     assert metadata == {
         "optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"], "all": ["pytest"]}
     }
