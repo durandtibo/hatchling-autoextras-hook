@@ -11,5 +11,4 @@ test: ## Run the tests
 
 .PHONY: clean
 clean: ## Remove build, test and cache artifacts
-	rm -rf dist htmlcov coverage.xml .coverage .pytest_cache .ruff_cache
-	find . -path ./.venv -prune -o -type d -name __pycache__ -exec rm -rf {} +
+	.venv/bin/inv clean.all
