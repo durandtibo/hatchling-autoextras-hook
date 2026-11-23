@@ -211,7 +211,7 @@ Notes:
 Boolean (default: `false`) controlling what happens when an extra named `group-name` already exists
 in `[project.optional-dependencies]` (the names are compared normalized, so `All` conflicts with `all`).
 
-- `false`: the build fails with a `RuntimeError`, so a hand-written extra is never lost silently.
+- `false`: the build fails with a `ValueError`, so a hand-written extra is never lost silently.
 - `true`: the existing extra is replaced by the generated one. Its previous content is **not**
   merged: it is ignored when collecting dependencies and discarded.
 
@@ -233,7 +233,7 @@ The build fails with an explicit message in the following cases:
 
 | Situation                                                          | Exception      |
 | ------------------------------------------------------------------ | -------------- |
-| An extra named `group-name` already exists and `overwrite = false` | `RuntimeError` |
+| An extra named `group-name` already exists and `overwrite = false` | `ValueError`   |
 | `group-name` is not a valid extra name                             | `ValueError`   |
 | `group-name` is not a string                                       | `TypeError`    |
 | `exclude` contains the generated extra                             | `ValueError`   |
@@ -317,9 +317,10 @@ hook.update(metadata)  # modifies `metadata` in place
    [tool.hatch.metadata.hooks.autoextras]
    ```
 
-### `Cannot create 'all' group: already exists`
+### `Cannot create the 'all' extra: 'all' already exists`
 
-**Problem**: The build raises a `RuntimeError` because an `all` extra is already defined.
+**Problem**: The build raises a `ValueError` because an `all` extra is already defined (the message
+names the existing extra, whatever its spelling: `All`, `a_ll`, ...).
 
 **Solution**: Set `overwrite = true`, choose another `group-name`, or remove your manual `all`
 extra.
@@ -346,7 +347,7 @@ read `[dependency-groups]`), and check that they are not listed in `exclude`.
 
 ### Q: Will this hook override my manually defined `all` extra?
 
-**A:** No, not by default. The build fails with a `RuntimeError` so nothing is silently lost. Set
+**A:** No, not by default. The build fails with a `ValueError` so nothing is silently lost. Set
 `overwrite = true` to replace it, or use a different `group-name`.
 
 ### Q: Can I exclude specific extras from being included in `all`?
