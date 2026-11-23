@@ -345,6 +345,29 @@ def test_update_is_idempotent_with_overwrite() -> None:
     assert metadata["optional-dependencies"] == first
 
 
+def test_update_sorts_as_strings() -> None:
+    metadata = {"optional-dependencies": {"dev": ["sphinx>=5", "sphinx-rtd", "Zed", "alpha"]}}
+    AutoExtrasMetadataHook("test", {}).update(metadata)
+    assert metadata == {
+        "optional-dependencies": {
+            "dev": ["sphinx>=5", "sphinx-rtd", "Zed", "alpha"],
+            "all": ["Zed", "alpha", "sphinx-rtd", "sphinx>=5"],
+        }
+    }
+
+
+@pytest.mark.parametrize("warn_only", ["0", "1"])
+def test_update_output_is_the_same_in_strict_and_warn_only_modes(
+    monkeypatch: pytest.MonkeyPatch, warn_only: str
+) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, warn_only)
+    metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"]}}
+    AutoExtrasMetadataHook("test", {"exclude": ["docs"]}).update(metadata)
+    assert metadata == {
+        "optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"], "all": ["pytest"]}
+    }
+
+
 def test_update_logs_debug(caplog: pytest.LogCaptureFixture) -> None:
     metadata = {"optional-dependencies": {"dev": ["pytest"]}}
     with caplog.at_level(logging.DEBUG, logger="hatchling_autoextras_hook.hooks"):
