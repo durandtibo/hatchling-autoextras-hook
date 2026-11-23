@@ -244,7 +244,7 @@ def test_autoextras_integration(tmp_path: Path) -> None:
 
 
 def test_autoextras_integration_custom_name(tmp_path: Path) -> None:
-    assert build_extras(tmp_path / "project", config='group-name = "complete"') == {
+    assert build_extras(tmp_path / "project", config='extra-name = "complete"') == {
         "complete": ["numpy>=2.0", "pytest>=9.0"],
         "dev": ["pytest>=9.0"],
         "numpy": ["numpy>=2.0"],
@@ -252,15 +252,15 @@ def test_autoextras_integration_custom_name(tmp_path: Path) -> None:
 
 
 def test_autoextras_integration_exclude(tmp_path: Path) -> None:
-    r"""Excluded extras must not contribute to the combined group, but
+    r"""Excluded extras must not contribute to the combined extra, but
     must still be provided as extras."""
     assert build_extras(
-        tmp_path / "project", config='group-name = "complete"\nexclude = ["dev"]'
+        tmp_path / "project", config='extra-name = "complete"\nexclude = ["dev"]'
     ) == {"complete": ["numpy>=2.0"], "dev": ["pytest>=9.0"], "numpy": ["numpy>=2.0"]}
 
 
 def test_autoextras_integration_overwrite(tmp_path: Path) -> None:
-    r"""With overwrite enabled, the existing group is replaced."""
+    r"""With overwrite enabled, the existing extra is replaced."""
     assert (
         build_extras(
             tmp_path / "project", config="overwrite = true", extra_extras='all = [ "old-dep" ]'
@@ -269,10 +269,10 @@ def test_autoextras_integration_overwrite(tmp_path: Path) -> None:
     )
 
 
-def test_autoextras_integration_normalized_group_name(tmp_path: Path) -> None:
-    r"""A group name that is not normalized is normalized by
+def test_autoextras_integration_normalized_extra_name(tmp_path: Path) -> None:
+    r"""An extra name that is not normalized is normalized by
     hatchling."""
-    assert build_extras(tmp_path / "project", config='group-name = "Full_Extra"') == {
+    assert build_extras(tmp_path / "project", config='extra-name = "Full_Extra"') == {
         "dev": ["pytest>=9.0"],
         "full-extra": ["numpy>=2.0", "pytest>=9.0"],
         "numpy": ["numpy>=2.0"],
@@ -317,12 +317,12 @@ def test_autoextras_integration_self_reference_excluded(tmp_path: Path) -> None:
 
 
 @pytest.fixture(scope="module")
-def existing_group(tmp_path_factory: pytest.TempPathFactory) -> subprocess.CompletedProcess[str]:
+def existing_extra(tmp_path_factory: pytest.TempPathFactory) -> subprocess.CompletedProcess[str]:
     return build_failure(tmp_path_factory, "existing", extra_extras='all = [ "old-dep" ]')
 
 
 @pytest.fixture(scope="module")
-def existing_group_spelling(
+def existing_extra_spelling(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> subprocess.CompletedProcess[str]:
     return build_failure(tmp_path_factory, "spelling", extra_extras='All = [ "old-dep" ]')
@@ -331,6 +331,11 @@ def existing_group_spelling(
 @pytest.fixture(scope="module")
 def unknown_option(tmp_path_factory: pytest.TempPathFactory) -> subprocess.CompletedProcess[str]:
     return build_failure(tmp_path_factory, "unknown", config='excludes = ["dev"]')
+
+
+@pytest.fixture(scope="module")
+def old_option_name(tmp_path_factory: pytest.TempPathFactory) -> subprocess.CompletedProcess[str]:
+    return build_failure(tmp_path_factory, "old-name", config='group-name = "complete"')
 
 
 @pytest.fixture(scope="module")
@@ -352,32 +357,32 @@ def dynamic_and_static(
     return build_failure(tmp_path_factory, "dynamic", dynamic='"optional-dependencies"')
 
 
-def test_autoextras_integration_existing_group_fails(
-    existing_group: subprocess.CompletedProcess[str],
+def test_autoextras_integration_existing_extra_fails(
+    existing_extra: subprocess.CompletedProcess[str],
 ) -> None:
-    r"""The build must fail if the group exists and overwrite is not
+    r"""The build must fail if the extra exists and overwrite is not
     enabled."""
-    assert existing_group.returncode != 0
+    assert existing_extra.returncode != 0
 
 
-def test_autoextras_integration_existing_group_message(
-    existing_group: subprocess.CompletedProcess[str],
+def test_autoextras_integration_existing_extra_message(
+    existing_extra: subprocess.CompletedProcess[str],
 ) -> None:
-    assert "Cannot create the 'all' extra: 'all' already exists" in output(existing_group)
+    assert "Cannot create the 'all' extra: 'all' already exists" in output(existing_extra)
 
 
-def test_autoextras_integration_existing_group_other_spelling_fails(
-    existing_group_spelling: subprocess.CompletedProcess[str],
+def test_autoextras_integration_existing_extra_other_spelling_fails(
+    existing_extra_spelling: subprocess.CompletedProcess[str],
 ) -> None:
     r"""An existing extra with another spelling of the name is a
     conflict, detected by the hook."""
-    assert existing_group_spelling.returncode != 0
+    assert existing_extra_spelling.returncode != 0
 
 
-def test_autoextras_integration_existing_group_other_spelling_message(
-    existing_group_spelling: subprocess.CompletedProcess[str],
+def test_autoextras_integration_existing_extra_other_spelling_message(
+    existing_extra_spelling: subprocess.CompletedProcess[str],
 ) -> None:
-    assert "Cannot create the 'all' extra: 'All' already exists" in output(existing_group_spelling)
+    assert "Cannot create the 'all' extra: 'All' already exists" in output(existing_extra_spelling)
 
 
 def test_autoextras_integration_unknown_option_fails(
@@ -394,6 +399,23 @@ def test_autoextras_integration_unknown_option_message(
     assert "Unknown option(s) in [tool.hatch.metadata.hooks.autoextras]: ['excludes']" in output(
         unknown_option
     )
+
+
+def test_autoextras_integration_old_option_name_fails(
+    old_option_name: subprocess.CompletedProcess[str],
+) -> None:
+    r"""The old name of the option, group-name, must fail the build."""
+    assert old_option_name.returncode != 0
+
+
+def test_autoextras_integration_old_option_name_message(
+    old_option_name: subprocess.CompletedProcess[str],
+) -> None:
+    r"""The error names the old option and lists the valid ones."""
+    assert (
+        "Unknown option(s) in [tool.hatch.metadata.hooks.autoextras]: ['group-name']. "
+        "Valid options: ['exclude', 'extra-name', 'overwrite']"
+    ) in output(old_option_name)
 
 
 def test_autoextras_integration_exclude_unmatched_fails(

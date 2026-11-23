@@ -113,7 +113,7 @@ pip install your-package[all]
 - Automatically combines all optional dependencies into a single extra
 - Removes duplicates across extras and normalizes whitespace
 - Sorts dependencies alphabetically for reproducible output
-- Configurable group name, exclusion list, and overwrite behavior
+- Configurable extra name, exclusion list, and overwrite behavior
 - Validates its configuration (unknown options included) and fails early with clear error messages
 - Compatible with all Hatchling build targets (wheel, sdist)
 
@@ -160,7 +160,7 @@ All options are optional. Enabling the hook with an empty table is enough:
 
 | Option       | Type      | Default | Description                                                       |
 | ------------ | --------- | ------- | ----------------------------------------------------------------- |
-| `group-name` | string    | `"all"` | Name of the generated extra. Must be a valid extra name.          |
+| `extra-name` | string    | `"all"` | Name of the generated extra. Must be a valid extra name.          |
 | `exclude`    | list[str] | `[]`    | Names of extras that must not be included in the generated extra. |
 | `overwrite`  | boolean   | `false` | Replace an existing extra with the same name instead of raising.  |
 
@@ -168,7 +168,7 @@ Example:
 
 ```toml
 [tool.hatch.metadata.hooks.autoextras]
-group-name = "complete"
+extra-name = "complete"
 exclude = ["dev", "docs"]
 overwrite = false
 ```
@@ -186,10 +186,10 @@ Regardless of the options, the hook:
 
 ### Option details
 
-#### `group-name`
+#### `extra-name`
 
 Name of the extra that the hook generates (default: `"all"`). Users install it with
-`pip install my-package[<group-name>]`. The value must be a valid extra name (letters, digits, `-`,
+`pip install my-package[<extra-name>]`. The value must be a valid extra name (letters, digits, `-`,
 `_` and `.`, starting and ending with a letter or a digit, no whitespace), otherwise a `ValueError`
 is raised (a `TypeError` if it is not a string). Names are compared after the normalization of
 [PEP 685](https://peps.python.org/pep-0685/), like Hatchling does: `Full_Extra`, `full-extra` and
@@ -197,7 +197,7 @@ is raised (a `TypeError` if it is not a string). Names are compared after the no
 
 ```toml
 [tool.hatch.metadata.hooks.autoextras]
-group-name = "complete"
+extra-name = "complete"
 ```
 
 ```toml
@@ -241,7 +241,7 @@ Notes:
 
 #### `overwrite`
 
-Boolean (default: `false`) controlling what happens when an extra named `group-name` already exists
+Boolean (default: `false`) controlling what happens when an extra named `extra-name` already exists
 in `[project.optional-dependencies]` (the names are compared normalized, so `All` conflicts with `all`).
 
 - `false`: the build fails with a `ValueError`, so a hand-written extra is never lost silently.
@@ -269,9 +269,9 @@ The build fails with an explicit message in the following cases:
 | ------------------------------------------------------------------ | ------------ | -------------- |
 | The hook table contains an unknown option                          | `ValueError` | warning        |
 | `exclude` has a name that matches no extra                         | `ValueError` | warning        |
-| An extra named `group-name` already exists and `overwrite = false` | `ValueError` | error          |
-| `group-name` is not a valid extra name                             | `ValueError` | error          |
-| `group-name` is not a string                                       | `TypeError`  | error          |
+| An extra named `extra-name` already exists and `overwrite = false` | `ValueError` | error          |
+| `extra-name` is not a valid extra name                             | `ValueError` | error          |
+| `extra-name` is not a string                                       | `TypeError`  | error          |
 | `exclude` contains the generated extra                             | `ValueError` | error          |
 | `exclude` is not a list of strings                                 | `TypeError`  | error          |
 | `overwrite` is not a boolean                                       | `TypeError`  | error          |
@@ -302,7 +302,7 @@ warn-only mode. Every other problem still raises.
 
 ```toml
 [tool.hatch.metadata.hooks.autoextras]
-group-name = "full"
+extra-name = "full"
 exclude = ["dev", "test"]
 overwrite = true
 ```
@@ -330,7 +330,7 @@ The hook can also be used directly, which is mostly useful for testing:
 from hatchling_autoextras_hook.hooks import AutoExtrasMetadataHook
 
 metadata = {"optional-dependencies": {"dev": ["pytest>=7.0", "black>=22.0"]}}
-hook = AutoExtrasMetadataHook("root", {"group-name": "complete"})
+hook = AutoExtrasMetadataHook("root", {"extra-name": "complete"})
 hook.update(metadata)  # modifies `metadata` in place
 ```
 
@@ -369,7 +369,7 @@ hook.update(metadata)  # modifies `metadata` in place
 **Problem**: The build raises a `ValueError` because an `all` extra is already defined (the message
 names the existing extra, whatever its spelling: `All`, `a_ll`, ...).
 
-**Solution**: Set `overwrite = true`, choose another `group-name`, or remove your manual `all`
+**Solution**: Set `overwrite = true`, choose another `extra-name`, or remove your manual `all`
 extra.
 
 ### Dependencies Missing from the Generated Extra
@@ -395,7 +395,7 @@ read `[dependency-groups]`), and check that they are not listed in `exclude`.
 ### Q: Will this hook override my manually defined `all` extra?
 
 **A:** No, not by default. The build fails with a `ValueError` so nothing is silently lost. Set
-`overwrite = true` to replace it, or use a different `group-name`.
+`overwrite = true` to replace it, or use a different `extra-name`.
 
 ### Q: Why does the build fail on a typo?
 

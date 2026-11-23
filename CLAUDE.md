@@ -164,7 +164,7 @@ check. Cover, where applicable:
 - Boundary values (empty string, whitespace-only string, empty list).
 - Error conditions: inputs that should raise, with the right exception type and message.
 - Interactions between parameters (for example `exclude` with `overwrite`, or a custom
-  `group-name` with `exclude`), and the order of output entries.
+  `extra-name` with `exclude`), and the order of output entries.
 - Side effects: in-place mutation of `metadata`, deduplication, sorting, whitespace stripping, and
   determinism across repeated calls.
 

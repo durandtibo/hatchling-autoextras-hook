@@ -27,27 +27,27 @@ def test_plugin_name() -> None:
     assert AutoExtrasMetadataHook.PLUGIN_NAME == "autoextras"
 
 
-@pytest.mark.parametrize("group_name", [None, 1, ["all"]])
-def test_invalid_group_name_type(group_name: object) -> None:
-    with pytest.raises(TypeError, match=r"'group-name' in .* must be a string"):
-        AutoExtrasMetadataHook("test", {"group-name": group_name})
+@pytest.mark.parametrize("extra_name", [None, 1, ["all"]])
+def test_invalid_extra_name_type(extra_name: object) -> None:
+    with pytest.raises(TypeError, match=r"'extra-name' in .* must be a string"):
+        AutoExtrasMetadataHook("test", {"extra-name": extra_name})
 
 
 @pytest.mark.parametrize(
-    "group_name",
+    "extra_name",
     ["", " ", "\t\n", " all ", "a b", "-a", "a-", "_a", "a_", ".a", "a.", "é", "all\n"],
 )
-def test_invalid_group_name_value(group_name: str) -> None:
-    with pytest.raises(ValueError, match=r"'group-name' in .* must be a valid extra name"):
-        AutoExtrasMetadataHook("test", {"group-name": group_name})
+def test_invalid_extra_name_value(extra_name: str) -> None:
+    with pytest.raises(ValueError, match=r"'extra-name' in .* must be a valid extra name"):
+        AutoExtrasMetadataHook("test", {"extra-name": extra_name})
 
 
 @pytest.mark.parametrize(
-    "group_name", ["all", "full", "my_extra", "my-extra", "a.b", "a", "A1", "9"]
+    "extra_name", ["all", "full", "my_extra", "my-extra", "a.b", "a", "A1", "9"]
 )
-def test_valid_group_name(group_name: str) -> None:
-    hook = AutoExtrasMetadataHook("test", {"group-name": group_name})
-    assert hook.config["group-name"] == group_name
+def test_valid_extra_name(extra_name: str) -> None:
+    hook = AutoExtrasMetadataHook("test", {"extra-name": extra_name})
+    assert hook.config["extra-name"] == extra_name
 
 
 @pytest.mark.parametrize("exclude", ["dev", ("dev",), {"dev"}, None, 1])
@@ -64,18 +64,18 @@ def test_invalid_overwrite_type(overwrite: object) -> None:
 
 def test_default_config() -> None:
     hook = AutoExtrasMetadataHook("test", {})
-    assert hook.config == {"group-name": "all", "exclude": [], "overwrite": False}
+    assert hook.config == {"extra-name": "all", "exclude": [], "overwrite": False}
 
 
 def test_config_overrides_defaults() -> None:
     hook = AutoExtrasMetadataHook(
-        "test", {"group-name": "full", "exclude": ["dev"], "overwrite": True}
+        "test", {"extra-name": "full", "exclude": ["dev"], "overwrite": True}
     )
-    assert hook.config == {"group-name": "full", "exclude": ["dev"], "overwrite": True}
+    assert hook.config == {"extra-name": "full", "exclude": ["dev"], "overwrite": True}
 
 
-def test_update_default_group_name() -> None:
-    """Test that the default group name is 'all'."""
+def test_update_default_extra_name() -> None:
+    """Test that the default extra name is 'all'."""
     hook = AutoExtrasMetadataHook("test", {})
     metadata = {
         "optional-dependencies": {
@@ -93,9 +93,9 @@ def test_update_default_group_name() -> None:
     }
 
 
-def test_update_custom_group_name() -> None:
-    """Test that a custom group name can be configured."""
-    hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
+def test_update_custom_extra_name() -> None:
+    """Test that a custom extra name can be configured."""
+    hook = AutoExtrasMetadataHook("test", {"extra-name": "complete"})
     metadata = {
         "optional-dependencies": {
             "dev": ["pytest>=7.0", "black>=22.0"],
@@ -291,35 +291,35 @@ def test_update_overwrite_with_exclude() -> None:
     assert metadata["optional-dependencies"]["all"] == ["sphinx"]
 
 
-def test_update_does_not_overwrite_custom_group() -> None:
+def test_update_does_not_overwrite_custom_extra() -> None:
     metadata = {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
-    hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
+    hook = AutoExtrasMetadataHook("test", {"extra-name": "complete"})
     with pytest.raises(
         ValueError, match=r"Cannot create the 'complete' extra: 'complete' already exists"
     ):
         hook.update(metadata)
 
 
-def test_update_does_not_overwrite_custom_group_suggests_overwrite() -> None:
+def test_update_does_not_overwrite_custom_extra_suggests_overwrite() -> None:
     metadata = {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
-    hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
+    hook = AutoExtrasMetadataHook("test", {"extra-name": "complete"})
     with pytest.raises(ValueError, match=r"overwrite = true"):
         hook.update(metadata)
 
 
-def test_update_does_not_overwrite_custom_group_leaves_metadata_unchanged() -> None:
+def test_update_does_not_overwrite_custom_extra_leaves_metadata_unchanged() -> None:
     metadata = {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
-    hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
+    hook = AutoExtrasMetadataHook("test", {"extra-name": "complete"})
     with pytest.raises(ValueError, match=r"already exists"):
         hook.update(metadata)
     assert metadata == {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
 
 
-def test_update_all_exists_when_custom_group_name() -> None:
+def test_update_all_exists_when_custom_extra_name() -> None:
     """An existing 'all' extra is treated as a regular extra when the
-    group name differs."""
+    extra name differs."""
     metadata = {"optional-dependencies": {"all": ["numpy"], "dev": ["pytest"]}}
-    AutoExtrasMetadataHook("test", {"group-name": "complete"}).update(metadata)
+    AutoExtrasMetadataHook("test", {"extra-name": "complete"}).update(metadata)
     assert metadata["optional-dependencies"]["complete"] == ["numpy", "pytest"]
 
 
@@ -382,7 +382,7 @@ def test_update_logs_overwrite(caplog: pytest.LogCaptureFixture) -> None:
     metadata = {"optional-dependencies": {"all": ["old"], "dev": ["pytest"]}}
     with caplog.at_level(logging.DEBUG, logger="hatchling_autoextras_hook.hooks"):
         AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
-    assert "Overwriting existing 'all' group" in caplog.text
+    assert "Overwriting existing 'all' extra" in caplog.text
 
 
 #########################################
@@ -397,9 +397,18 @@ def test_unknown_option_raises() -> None:
 
 def test_unknown_option_message_lists_valid_options() -> None:
     with pytest.raises(
-        ValueError, match=r"Valid options: \['exclude', 'group-name', 'overwrite'\]"
+        ValueError, match=r"Valid options: \['exclude', 'extra-name', 'overwrite'\]"
     ):
         AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
+
+
+def test_old_option_name_group_name_is_unknown() -> None:
+    with pytest.raises(
+        ValueError,
+        match=r"Unknown option\(s\) in .*: \['group-name'\]\. "
+        r"Valid options: \['exclude', 'extra-name', 'overwrite'\]",
+    ):
+        AutoExtrasMetadataHook("test", {"group-name": "complete"})
 
 
 def test_unknown_options_are_reported_sorted() -> None:
@@ -409,7 +418,7 @@ def test_unknown_options_are_reported_sorted() -> None:
 
 def test_unknown_option_with_valid_options_raises() -> None:
     with pytest.raises(ValueError, match=r"Unknown option\(s\) in .*: \['typo'\]"):
-        AutoExtrasMetadataHook("test", {"group-name": "full", "typo": True})
+        AutoExtrasMetadataHook("test", {"extra-name": "full", "typo": True})
 
 
 def test_unknown_option_warn_only_warns(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -421,8 +430,8 @@ def test_unknown_option_warn_only_warns(monkeypatch: pytest.MonkeyPatch) -> None
 def test_unknown_option_warn_only_is_dropped_from_config(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(WARN_ONLY_ENV, "1")
     with pytest.warns(UserWarning, match=r"Unknown option"):
-        hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"], "group-name": "full"})
-    assert hook.config == {"group-name": "full", "exclude": [], "overwrite": False}
+        hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"], "extra-name": "full"})
+    assert hook.config == {"extra-name": "full", "exclude": [], "overwrite": False}
 
 
 def test_unknown_option_warn_only_ignores_the_option(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -440,10 +449,10 @@ def test_unknown_option_warn_only_ignores_the_option(monkeypatch: pytest.MonkeyP
     }
 
 
-def test_warn_only_does_not_downgrade_invalid_group_name(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_warn_only_does_not_downgrade_invalid_extra_name(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(WARN_ONLY_ENV, "1")
-    with pytest.raises(ValueError, match=r"'group-name' in .* must be a valid extra name"):
-        AutoExtrasMetadataHook("test", {"group-name": ""})
+    with pytest.raises(ValueError, match=r"'extra-name' in .* must be a valid extra name"):
+        AutoExtrasMetadataHook("test", {"extra-name": ""})
 
 
 def test_warn_only_does_not_downgrade_invalid_exclude(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -556,7 +565,7 @@ def test_exclude_generated_extra_raises(exclude: list[str]) -> None:
 
 def test_exclude_generated_extra_other_spelling_raises() -> None:
     with pytest.raises(ValueError, match=r"'exclude' in .* must not contain the generated extra"):
-        AutoExtrasMetadataHook("test", {"group-name": "my_extra", "exclude": ["My.Extra"]})
+        AutoExtrasMetadataHook("test", {"extra-name": "my_extra", "exclude": ["My.Extra"]})
 
 
 def test_update_exclude_is_case_insensitive() -> None:
@@ -589,7 +598,7 @@ def test_update_conflict_with_other_separator() -> None:
     with pytest.raises(
         ValueError, match=r"Cannot create the 'my_extra' extra: 'my.extra' already exists"
     ):
-        AutoExtrasMetadataHook("test", {"group-name": "my_extra"}).update(metadata)
+        AutoExtrasMetadataHook("test", {"extra-name": "my_extra"}).update(metadata)
 
 
 def test_update_overwrite_replaces_existing_spelling() -> None:
@@ -602,12 +611,12 @@ def test_update_overwrite_logs_existing_spelling(caplog: pytest.LogCaptureFixtur
     metadata = {"optional-dependencies": {"ALL": ["old"], "dev": ["pytest"]}}
     with caplog.at_level(logging.DEBUG, logger="hatchling_autoextras_hook.hooks"):
         AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
-    assert "Overwriting existing 'ALL' group" in caplog.text
+    assert "Overwriting existing 'ALL' extra" in caplog.text
 
 
-def test_update_custom_group_name_with_exclude() -> None:
+def test_update_custom_extra_name_with_exclude() -> None:
     metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"], "aws": ["boto3"]}}
-    AutoExtrasMetadataHook("test", {"group-name": "full", "exclude": ["DEV", "docs"]}).update(
+    AutoExtrasMetadataHook("test", {"extra-name": "full", "exclude": ["DEV", "docs"]}).update(
         metadata
     )
     assert metadata == {
@@ -803,7 +812,7 @@ def test_update_whole_output_with_every_option() -> None:
         },
     }
     hook = AutoExtrasMetadataHook(
-        "test", {"group-name": "full", "exclude": ["DOCS"], "overwrite": True}
+        "test", {"extra-name": "full", "exclude": ["DOCS"], "overwrite": True}
     )
     hook.update(metadata)
     assert metadata == {
@@ -893,7 +902,7 @@ def test_update_overwrite_same_spelling_appends_the_extra_last() -> None:
 
 def test_update_overwrite_other_spelling_uses_the_configured_spelling() -> None:
     metadata = {"optional-dependencies": {"All": ["old"], "dev": ["pytest"]}}
-    AutoExtrasMetadataHook("test", {"overwrite": True, "group-name": "all"}).update(metadata)
+    AutoExtrasMetadataHook("test", {"overwrite": True, "extra-name": "all"}).update(metadata)
     assert list(metadata["optional-dependencies"]) == ["dev", "all"]
 
 
@@ -936,8 +945,8 @@ TABLE = r"\[tool\.hatch\.metadata\.hooks\.autoextras\]"
     "config",
     [
         pytest.param({"excludes": ["dev"]}, id="unknown option"),
-        pytest.param({"group-name": 1}, id="group-name type"),
-        pytest.param({"group-name": "a b"}, id="group-name value"),
+        pytest.param({"extra-name": 1}, id="extra-name type"),
+        pytest.param({"extra-name": "a b"}, id="extra-name value"),
         pytest.param({"exclude": "dev"}, id="exclude type"),
         pytest.param({"exclude": ["all"]}, id="exclude generated extra"),
         pytest.param({"overwrite": "yes"}, id="overwrite type"),
@@ -976,7 +985,7 @@ def test_unmatched_exclude_warning_names_the_table(monkeypatch: pytest.MonkeyPat
 def test_update_does_not_read_the_config_after_init() -> None:
     metadata = {"optional-dependencies": {"All": ["old"], "dev": ["pytest"], "docs": ["sphinx"]}}
     hook = AutoExtrasMetadataHook(
-        "test", {"group-name": "Full_Extra", "exclude": ["DEV"], "overwrite": True}
+        "test", {"extra-name": "Full_Extra", "exclude": ["DEV"], "overwrite": True}
     )
     hook.config.clear()
     hook.update(metadata)
