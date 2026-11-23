@@ -159,9 +159,15 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
         This method collects all dependencies from all optional extras
         (excluding any existing group with the configured name and any
-        extras in the exclude list), removes duplicates, sorts them
-        alphabetically, and creates/updates the extras group with the
-        combined list.
+        extras in the exclude list), removes duplicate strings, sorts
+        them alphabetically, and creates/updates the extras group with
+        the combined list. Two dependencies are duplicates if they are
+        the same string after stripping the whitespace around them:
+        the requirements are not parsed, hatchling merges the
+        equivalent ones afterwards.
+
+        Everything is validated before ``metadata`` is modified, so
+        ``metadata`` is unchanged if this method raises.
 
         Args:
             metadata: The project metadata dictionary to update. This
@@ -170,70 +176,105 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         Raises:
             RuntimeError: If the configured group name already exists and
                 overwrite is False.
-            TypeError: If optional dependencies are not in the expected format.
+            ValueError: If ``exclude`` contains a name that matches no
+                extra (a warning in the warn-only mode), or if a
+                dependency is a blank string.
+            TypeError: If optional dependencies are not in the expected
+                format: the table of extras, the dependencies of an
+                extra and each dependency must be a table, a list and a
+                string respectively.
 
         Note:
             If no optional dependencies exist, an empty group is
             created. Any pre-existing extras group will be completely
-            replaced if overwrite is True.
+            replaced if overwrite is True. The dependencies of an
+            excluded extra are not inspected.
         """
-        # Get configuration options
-        extras_group_name = self.config["group-name"]
-        overwrite = self.config["overwrite"]
-
-        # Get optional dependencies
         optional_dependencies = metadata.get("optional-dependencies", {})
         if not isinstance(optional_dependencies, dict):
             msg = "'optional-dependencies' must be a table of extras"
             raise TypeError(msg)
 
-        # Check if the group already exists (the names are compared normalized)
-        existing = next((n for n in optional_dependencies if _normalize(n) == self._group), None)
-        if existing is not None:
-            if not overwrite:
-                existing_extras = list(optional_dependencies.keys())
-                msg = (
-                    f"Cannot create '{extras_group_name}' group: already exists. "
-                    f"Existing extras: {existing_extras}. "
-                    f"Configure a different 'group-name' in pyproject.toml or set 'overwrite = true'"
-                )
-                raise RuntimeError(msg)
-            logger.debug("Overwriting existing '%s' group", existing)
-
-        # Collect all dependencies from all extras (except excluded ones)
-        all_deps: set[str] = set()
-        processed_extras = []
-
-        for extra_name, deps in optional_dependencies.items():
-            # Skip the configured group name and excluded groups
-            normalized = _normalize(extra_name)
-            if normalized == self._group or normalized in self._exclude:
-                continue
-
-            if not isinstance(deps, list):
-                msg = f"Dependencies of extra '{extra_name}' must be a list of strings"
-                raise TypeError(msg)
-
-            # Add dependencies, normalizing whitespace and dropping blanks
-            all_deps.update(
-                stripped for dep in deps if isinstance(dep, str) and (stripped := dep.strip())
+        group_name = self.config["group-name"]
+        by_name = {_normalize(name): name for name in optional_dependencies}
+        existing = by_name.get(self._group)
+        if existing is not None and not self.config["overwrite"]:
+            msg = (
+                f"Cannot create '{group_name}' group: already exists. "
+                f"Existing extras: {list(optional_dependencies)}. "
+                f"Configure a different 'group-name' in pyproject.toml or set 'overwrite = true'"
             )
-            processed_extras.append(extra_name)
+            raise RuntimeError(msg)
+        unmatched = sorted(self._exclude - by_name.keys())
+        if unmatched:
+            self._report(f"'exclude' contains names that match no extra: {unmatched}")
 
-        # Add the extras group with all dependencies (sorted for consistent output).
-        # The existing extra is replaced, even if it is spelled differently.
-        if existing is not None and existing != extras_group_name:
-            del optional_dependencies[existing]
-        optional_dependencies[extras_group_name] = sorted(all_deps)
+        # Collect the dependencies of the extras that are not excluded
+        sources = [
+            name
+            for name in optional_dependencies
+            if (key := _normalize(name)) != self._group and key not in self._exclude
+        ]
+        dependencies = {
+            dep for name in sources for dep in _dependencies(name, optional_dependencies[name])
+        }
+
+        # Everything is valid: the metadata is modified in one last step
+        if existing is not None:
+            logger.debug("Overwriting existing '%s' group", existing)
+            if existing != group_name:
+                del optional_dependencies[existing]
+        optional_dependencies[group_name] = sorted(dependencies)
+        # The key is absent from the metadata only if `optional_dependencies` is a new dict
         metadata["optional-dependencies"] = optional_dependencies
 
         logger.debug(
             "Created '%s' with %d dependencies from %d extras: %s",
-            extras_group_name,
-            len(all_deps),
-            len(processed_extras),
-            processed_extras,
+            group_name,
+            len(dependencies),
+            len(sources),
+            sources,
         )
+
+
+def _dependencies(name: str, value: object) -> list[str]:
+    r"""Validate the dependencies of an extra and strip them.
+
+    Args:
+        name: The name of the extra, used in the error messages.
+        value: The value of the extra in the metadata.
+
+    Returns:
+        The dependencies, stripped, in their original order.
+
+    Raises:
+        TypeError: If ``value`` is not a list, or if one of its items
+            is not a string.
+        ValueError: If one of the items is blank.
+
+    Example usage:
+
+    ```pycon
+
+    >>> from hatchling_autoextras_hook.hooks import _dependencies
+    >>> _dependencies("dev", [" pytest>=7.0 ", "black"])
+    ['pytest>=7.0', 'black']
+
+    ```
+    """
+    if not isinstance(value, list):
+        msg = f"Dependencies of extra '{name}' must be a list of strings"
+        raise TypeError(msg)
+    dependencies = []
+    for position, dep in enumerate(value, start=1):
+        if not isinstance(dep, str):
+            msg = f"Dependency #{position} of extra '{name}' must be a string, got {dep!r}"
+            raise TypeError(msg)
+        if not (stripped := dep.strip()):
+            msg = f"Dependency #{position} of extra '{name}' must not be blank"
+            raise ValueError(msg)
+        dependencies.append(stripped)
+    return dependencies
 
 
 def _normalize(name: str) -> str:
