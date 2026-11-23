@@ -849,3 +849,67 @@ def test_update_conflict_message_suggests_the_options() -> None:
     metadata = {"optional-dependencies": {"all": ["old"]}}
     with pytest.raises(ValueError, match=r"set 'overwrite = true'"):
         AutoExtrasMetadataHook("test", {}).update(metadata)
+
+
+#################################
+#     Tests for the remaining   #
+#################################
+
+
+def test_update_duplicates_inside_one_extra_are_merged() -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest", " pytest ", "black"]}}
+    AutoExtrasMetadataHook("test", {}).update(metadata)
+    assert metadata["optional-dependencies"]["all"] == ["black", "pytest"]
+
+
+def test_update_semantically_equal_requirements_are_kept() -> None:
+    """The requirements are not parsed: hatchling merges them later."""
+    metadata = {"optional-dependencies": {"dev": ["numpy>=2", "numpy >= 2"]}}
+    AutoExtrasMetadataHook("test", {}).update(metadata)
+    assert metadata["optional-dependencies"]["all"] == ["numpy >= 2", "numpy>=2"]
+
+
+def test_update_excluded_dependency_is_kept_through_another_extra() -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest", "black"], "test": ["pytest"]}}
+    AutoExtrasMetadataHook("test", {"exclude": ["dev"]}).update(metadata)
+    assert metadata["optional-dependencies"]["all"] == ["pytest"]
+
+
+def test_update_overwrite_without_existing_extra_is_a_no_op_option() -> None:
+    metadata = {"optional-dependencies": {"dev": ["pytest"]}}
+    AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
+    assert metadata == {"optional-dependencies": {"dev": ["pytest"], "all": ["pytest"]}}
+
+
+def test_update_whole_output_without_optional_dependencies_and_other_keys() -> None:
+    metadata = {"name": "pkg", "version": "1.0"}
+    AutoExtrasMetadataHook("test", {"group-name": "full"}).update(metadata)
+    assert metadata == {"name": "pkg", "version": "1.0", "optional-dependencies": {"full": []}}
+
+
+def test_update_invalid_optional_dependencies_leaves_metadata_unchanged() -> None:
+    metadata = {"name": "pkg", "optional-dependencies": ["pytest"]}
+    with pytest.raises(TypeError, match=r"'optional-dependencies' must be a table"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+    assert metadata == {"name": "pkg", "optional-dependencies": ["pytest"]}
+
+
+def test_update_original_extras_keep_their_order() -> None:
+    metadata = {"optional-dependencies": {"z": ["a"], "a": ["z"], "m": ["m"]}}
+    AutoExtrasMetadataHook("test", {}).update(metadata)
+    assert list(metadata["optional-dependencies"]) == ["z", "a", "m", "all"]
+
+
+def test_update_original_extras_are_not_sorted_or_stripped() -> None:
+    metadata = {"optional-dependencies": {"dev": [" z ", "a"]}}
+    AutoExtrasMetadataHook("test", {}).update(metadata)
+    assert metadata["optional-dependencies"]["dev"] == [" z ", "a"]
+
+
+def test_update_is_deterministic_across_calls() -> None:
+    extras = {"dev": ["pytest", "black"], "docs": ["sphinx"]}
+    metadata1 = {"optional-dependencies": dict(extras)}
+    metadata2 = {"optional-dependencies": dict(extras)}
+    AutoExtrasMetadataHook("test", {}).update(metadata1)
+    AutoExtrasMetadataHook("test", {}).update(metadata2)
+    assert metadata1 == metadata2

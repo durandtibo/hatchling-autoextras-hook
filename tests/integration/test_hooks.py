@@ -343,6 +343,21 @@ def test_autoextras_integration_self_reference(tmp_path: Path) -> None:
     assert metadata.count("Requires-Dist: numpy>=2.0; extra == 'all'") == 1
 
 
+def test_autoextras_integration_all_options(tmp_path: Path) -> None:
+    r"""Build with a custom ``group-name``, ``exclude`` and
+    ``overwrite`` together, with names that are not normalized."""
+    metadata = build_wheel_metadata(
+        tmp_path / "project",
+        config='group-name = "Full_Extra"\nexclude = ["DEV"]\noverwrite = true',
+        extra_extras='full-extra = [ "old-dep" ]',
+    )
+    assert "Provides-Extra: full-extra" in metadata
+    assert "Requires-Dist: numpy>=2.0; extra == 'full-extra'" in metadata
+    assert "Requires-Dist: pytest>=9.0; extra == 'full-extra'" not in metadata
+    assert "old-dep" not in metadata
+    assert "Requires-Dist: pytest>=9.0; extra == 'dev'" in metadata
+
+
 #######################################
 #     Tests for validate_metadata     #
 #######################################
