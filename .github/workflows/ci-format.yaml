@@ -1,5 +1,6 @@
 # Code formatting and linting workflow.
-# Checks code formatting and code quality with ruff.
+# Checks that all the files are formatted and linted (`make format`, `make lint`), and the
+# Python code with ruff.
 # Ensures code follows project style guidelines.
 
 name: Format
@@ -10,6 +11,35 @@ on:
 permissions: {}
 
 jobs:
+  format:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+      - name: Format
+        run: |
+          make format
+      - name: Check for changes
+        run: |
+          git diff --exit-code
+
+  lint:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+      - name: Lint
+        run: |
+          make lint
+
   python:
     permissions:
       contents: read
