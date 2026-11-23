@@ -29,6 +29,9 @@ reproduced; **[reading]** comes from the code. Nothing in `src`, `tests` or `doc
    release notes list the changes (section 4). Python >= 3.11, hatchling >= 1.18, < 2.0 are kept.
 5. **Fail early, name the culprit.** A build that succeeds with a wrong `all` extra is worse than a
    build that fails. Every error says which option or which extra is wrong.
+6. **Loud by default, lenient on request.** Every problem raises. Only the problems for which the
+   hook has an unambiguous way to continue (section 3.4) can be downgraded to a `UserWarning` by
+   an environment variable, set by the person who runs the build, not by the project.
 
 ## 1. Properties of the sub-package
 
@@ -43,9 +46,10 @@ package docstring and in the **Properties** section of the README.
 | Additive                | Original extras are never modified, reordered or removed. Only the generated extra is added (or replaced when `overwrite = true`).                                                              | `update`                              |
 | Atomic                  | `update` either completes or raises with `metadata` unchanged. The metadata is mutated in one last step.                                                                                        | validate first, mutate last           |
 | Name-normalized         | Extra names are compared after PEP 685 normalization (`Dev_Extra`, `dev-extra` and `dev.extra` are the same extra), for `group-name`, `exclude` and the collision check, like hatchling does.  | `_normalize`                          |
-| Strict                  | An unknown option, a wrong type, an invalid name, a non-string or blank dependency, and an `exclude` entry that matches no extra all raise. Nothing is ignored silently.                        | `_validate_config`, `update`          |
+| Strict                  | By default, an unknown option, a wrong type, an invalid name, a non-string or blank dependency, and an `exclude` entry that matches no extra all raise. Nothing is ignored silently.             | `_validate_config`, `update`          |
+| Lenient on request      | With `HATCHLING_AUTOEXTRAS_WARN_ONLY=1`, the two _recoverable_ problems (unknown option, unmatched `exclude` entry) emit a `UserWarning` and the build continues. Every other problem still raises. | `_report`                             |
 | Early and named errors  | Configuration errors are raised in `__init__` (before any metadata is read). Metadata errors name the extra and the position of the faulty entry. Invalid values raise `ValueError`, invalid types `TypeError`. | `_validate_config`, `update`          |
-| Pure besides `metadata` | `update` reads the configuration and mutates only `metadata`. No file access, no global state, no state kept between calls: a hook instance can be reused and gives the same result each time.   | `update`                              |
+| Pure besides `metadata` | `update` reads the configuration and mutates only `metadata`. No file access, no global state, no state kept between calls: a hook instance can be reused and gives the same result each time. The only environment read is `HATCHLING_AUTOEXTRAS_WARN_ONLY`, once, in `__init__`. | `update`                              |
 | Minimal                 | One runtime dependency (`hatchling`). One public class and one entry point. Three options, all keyword-style entries of the `pyproject.toml` hook table.                                        | the module                            |
 | Observable              | What was generated is logged at `DEBUG` level (`logger.debug`), never printed.                                                                                                                  | `update`                              |
 
@@ -122,8 +126,9 @@ because `hatchling.metadata.utils` is not public API and the supported range sta
 `__init__` merges the defaults and `config` and calls `_validate_config`, which now has four
 checks, in this order, each with a message that names the option:
 
-1. `unknown = config.keys() - _DEFAULTS.keys()` → `ValueError("Unknown option(s): ['excludes'].
-   Valid options: ['exclude', 'group-name', 'overwrite']")` (F1).
+1. `unknown = config.keys() - _DEFAULTS.keys()` → `_report("Unknown option(s): ['excludes'].
+   Valid options: ['exclude', 'group-name', 'overwrite']")` (F1): a `ValueError` by default, a
+   warning in warn-only mode (section 3.4). The unknown keys are dropped from the config.
 2. `group-name` is a `str` (else `TypeError`) matching `_NAME_PATTERN` (else `ValueError`) (F3).
 3. `exclude` is a `list` of `str` (one check, one message; F7) and does not contain `group-name`
    after normalization (`ValueError`: excluding the generated extra is meaningless).
@@ -152,7 +157,7 @@ def update(self, metadata: dict[str, Any]) -> None:
         raise ValueError(msg)
     if unknown := self._exclude - by_name.keys():
         msg = f"'exclude' contains names that match no extra: {sorted(unknown)}"
-        raise ValueError(msg)
+        self._report(msg)  # raises ValueError, or warns in warn-only mode
 
     sources = [n for n in extras if (key := _normalize(n)) != self._group and key not in self._exclude]
     dependencies = {dep for name in sources for dep in _dependencies(name, extras[name])}
@@ -169,11 +174,13 @@ naming the extra and the 1-based position (`"Dependency #2 of extra 'dev' must b
 non-string, `ValueError` for a blank string, and returns the stripped strings (F4). It is a private
 function with its own docstring and tests.
 
-Two decisions are visible in the sketch:
+Three decisions are visible in the sketch:
 
 - The excluded extras and the generated extra are skipped _before_ their content is validated, as
   today. A broken extra that is excluded does not fail the build (it is not the hook's business);
   hatchling still validates it afterwards.
+- The unmatched `exclude` entry goes through `_report` (section 3.4): it is the only metadata
+  problem that can be downgraded to a warning.
 - The unknown-`exclude` check uses the normalized names of **all** extras, including the generated
   one, so `exclude = ["all"]` is rejected earlier by the option check and never reaches here.
 
@@ -186,7 +193,48 @@ object is mutated.
 Unchanged: `PLUGIN_NAME = "autoextras"`, `hatch_register_metadata_hook`, the entry point
 `autoextras = "hatchling_autoextras_hook.hooks"`.
 
-### 3.4 What is deliberately not in the target
+### 3.4 Strict by default, warn-only on request
+
+One private method decides what happens to a _recoverable_ problem, so the rule is in one place:
+
+```python
+_WARN_ONLY_ENV = "HATCHLING_AUTOEXTRAS_WARN_ONLY"
+
+
+def _report(self, msg: str) -> None:
+    if not self._warn_only:
+        raise ValueError(msg)
+    warnings.warn(msg, UserWarning, stacklevel=2)
+```
+
+- **Reading.** `__init__` reads `os.environ.get(_WARN_ONLY_ENV)` once and stores a `bool`. Accepted
+  values (case-insensitive): `1`, `true`, `yes`, `on` (enable) and `0`, `false`, `no`, `off`, empty
+  or unset (disable). Any other value raises `ValueError` naming the variable: a typo must not
+  silently disable the mode, or silently enable it.
+- **Why an environment variable and not a fifth option.** Strictness is a property of _who builds_
+  (strict in CI and for releases, lenient on a laptop or in a downstream rebuild of a sdist), not of
+  the project, and the hook table is committed. The option table stays at three keys and the project
+  cannot weaken its own checks by accident. The variable is read by the build backend process, so
+  `python -m build` and `pip install .` pass it through (build isolation keeps the environment).
+- **Why `warnings.warn` and not `logger.warning`.** Build frontends do not configure `logging`, so
+  a logged warning is invisible; a `UserWarning` is shown on stderr by default. `print` is
+  forbidden by `CLAUDE.md`.
+- **What is recoverable** (the hook can continue and the result is well defined and documented):
+
+  | Problem                                   | Strict (default)   | Warn-only                                      |
+  | ----------------------------------------- | ------------------ | ---------------------------------------------- |
+  | Unknown option                            | `ValueError`       | warning, the option is ignored                 |
+  | `exclude` entry that matches no extra     | `ValueError`       | warning, the entry has no effect               |
+
+- **What is never recoverable** (continuing would produce a wrong or ambiguous extra, or hatchling
+  rejects the result anyway): a wrong type or an invalid name for an option, `group-name` in
+  `exclude`, an existing extra with the generated name and `overwrite = false`, `optional-dependencies`
+  that is not a table, an extra that is not a list, a non-string or blank dependency (hatchling
+  rejects it in the source extra afterwards, so dropping it would only move the error).
+- **No per-problem switches.** One boolean for the whole hook. A list of ignorable problems would
+  be a second configuration language to document and test.
+
+### 3.5 What is deliberately not in the target
 
 - **No parsing of requirements** (`packaging.requirements.Requirement`). It would allow a sort by
   project name and semantic deduplication, but hatchling does both afterwards, `packaging` is not a
@@ -208,8 +256,9 @@ from hatchling_autoextras_hook import AutoExtrasMetadataHook, __version__
 
 | Item                                         | Change                                                                                                  |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `AutoExtrasMetadataHook(root, config)`       | Unknown options raise `ValueError`; `group-name` must be a valid extra name; `exclude` is normalized.   |
-| `AutoExtrasMetadataHook.update(metadata)`    | Conflict raises `ValueError` (was `RuntimeError`); invalid dependency entries raise (were dropped); an `exclude` entry that matches no extra raises `ValueError`; names are compared normalized. |
+| `AutoExtrasMetadataHook(root, config)`       | Unknown options raise `ValueError` (a warning with `HATCHLING_AUTOEXTRAS_WARN_ONLY=1`); `group-name` must be a valid extra name; `exclude` is normalized. |
+| `AutoExtrasMetadataHook.update(metadata)`    | Conflict raises `ValueError` (was `RuntimeError`); invalid dependency entries raise (were dropped); an `exclude` entry that matches no extra raises `ValueError` (a warning with `HATCHLING_AUTOEXTRAS_WARN_ONLY=1`); names are compared normalized. |
+| Environment variable `HATCHLING_AUTOEXTRAS_WARN_ONLY` | New. Truthy (`1`, `true`, `yes`, `on`) downgrades the two recoverable problems to a `UserWarning`. Any other unrecognized value raises `ValueError`. |
 | `hatch_register_metadata_hook()`             | Unchanged.                                                                                              |
 | `__all__` of the package                     | Unchanged: `AutoExtrasMetadataHook`, `__version__`.                                                     |
 | `pyproject.toml` hook table                  | Same three keys, same defaults. Existing valid configurations keep working; only previously silent mistakes now fail. |
@@ -222,6 +271,8 @@ Release notes (breaking behaviour, no signature change):
    case-sensitive.
 4. Non-string and blank dependency entries raise instead of being dropped.
 5. An existing extra with the same name raises `ValueError` instead of `RuntimeError`.
+6. New environment variable `HATCHLING_AUTOEXTRAS_WARN_ONLY=1`: unknown options and unmatched
+   `exclude` entries warn instead of failing. Everything else still fails.
 
 ## 5. Dependents
 
@@ -233,7 +284,8 @@ Release notes (breaking behaviour, no signature change):
   **Releases**).
 - **`tests/package_checks.py`** calls `AutoExtrasMetadataHook("test", {}).update({})` and expects
   `{"optional-dependencies": {"all": []}}`: it stays valid (the empty-project case is kept).
-- **Docs to update:** `README.md` (Properties section, Errors table, `exclude` notes, FAQ),
+- **Docs to update:** `README.md` (Properties section, Errors table with a "Warn-only" column, a "Strict and warn-only
+  modes" section for the environment variable, `exclude` notes, FAQ),
   `.github/CONTRIBUTING.md` only if a command changes (none planned), the class docstring (kept in
   sync with the README options, per `CLAUDE.md`).
 
@@ -265,7 +317,7 @@ each PR small. Branch names in the second column.
 
 | Step | Branch                       | Change                                                                                                                                                                                                  | Breaking |
 | ---- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 1    | `refactor/option-table`      | **Option table and unknown options (F1, F7).** `_DEFAULTS`, one `exclude` check, reject unknown keys. Tests: unknown option (with the message listing the valid ones), `exclude` type errors merged.  | yes      |
+| 1    | `refactor/option-table`      | **Option table, unknown options and the warn-only switch (F1, F7).** `_DEFAULTS`, one `exclude` check, reject unknown keys, `_WARN_ONLY_ENV` and `_report` (section 3.4). Tests: unknown option (message listing the valid ones), warn-only mode, invalid variable value, `exclude` type errors merged. | yes      |
 | 2    | `bugfix/normalize-names`     | **Name normalization (F2, F3).** `_normalize`, `_NAME_PATTERN`, `group-name` validation, normalized `exclude` and collision check, replace the colliding key on overwrite. Regression tests first.       | yes      |
 | 3    | `refactor/validate-then-mutate` | **Strict extras and atomic update (F4, F5, F8, F9).** `_dependencies` helper, errors for non-string and blank entries, unknown `exclude` entries, validate-then-mutate structure.                    | yes      |
 | 4    | `refactor/value-error-conflict` | **`ValueError` for the conflict (F6).** Message updated, README errors table and troubleshooting section (`Cannot create 'all' group` title) updated. Can be merged into step 3.                   | yes      |
@@ -285,6 +337,13 @@ imports, `match` on every `pytest.raises`).
 **Configuration (`__init__`, `_validate_config`)**
 
 - unknown option raises `ValueError` and the message lists the valid options (F1);
+- with `HATCHLING_AUTOEXTRAS_WARN_ONLY=1` (`monkeypatch.setenv`), the same unknown option emits a
+  `UserWarning` (`pytest.warns`, `match` on the message), does not raise, and is absent from the
+  merged config;
+- warn-only variable: `1`, `true`, `TRUE`, `yes`, `on` enable; `0`, `false`, `no`, `off`, `""` and
+  unset disable (parametrized); `"maybe"` raises `ValueError` that names the variable;
+- warn-only mode does not downgrade a non-recoverable problem: an invalid `group-name` and a wrong
+  `overwrite` type still raise;
 - two unknown options are both reported, sorted;
 - `group-name`: valid values are accepted (`"all"`, `"full"`, `"my_extra"`, `"a.b"`, a single
   character); invalid values raise `ValueError` (`""`, `" "`, `" all "`, `"a b"`, `"-a"`, `"a-"`,
@@ -312,8 +371,11 @@ list returns `[]`.
   parametrized orders, same literal);
 - `exclude`: one, several, an extra excluded and also listed in another (dependency still included
   through the other extra), the match is normalized (`exclude = ["B.c"]` excludes `B_c`) (F2),
-  an unknown name raises `ValueError` that lists it (F5), an excluded extra whose content is
-  invalid does not fail the build;
+  an unknown name raises `ValueError` that lists it (F5); in warn-only mode the same name emits a
+  `UserWarning` and the generated extra is identical to the one without that name (asserted against
+  a full literal); an excluded extra whose content is invalid does not fail the build;
+- warn-only mode with a conflict (`overwrite = false`), a non-list extra or a non-string entry
+  still raises (the mode downgrades only the two recoverable problems);
 - `overwrite`: `false` raises `ValueError` (message names the existing extra and the existing
   extras); `true` replaces and discards the previous content; an existing `All` is replaced, not
   duplicated, when `group-name = "all"` and `overwrite = true` (F2); `overwrite = true` without an
@@ -339,6 +401,9 @@ list returns `[]`.
   contains the dependencies of `numpy` once, which proves that the hatchling resolution and the hook
   agree (the unit tests only prove that the string is copied);
 - **new:** a build with an unknown option fails and the error output contains the option name;
+- **new:** the same build with `HATCHLING_AUTOEXTRAS_WARN_ONLY=1` in the environment of the
+  subprocess succeeds, the stderr contains the warning, and the built `METADATA` is the same as the
+  build without the unknown option (proves the variable reaches the isolated build backend);
 - run on the hatchling matrix of `dev/config/package_versions.json` through the existing CI jobs;
   nothing is added to the matrix.
 
@@ -349,11 +414,15 @@ list returns `[]`.
 
 ## 9. Decisions for the maintainers
 
-**D1. Raise on an `exclude` entry that matches no extra?** _Recommended: yes._ It is the only option
-whose typo silently _adds_ dependencies (often `dev` or `test`) to a public extra (F5). Cost: a
-shared hook configuration that lists extras which only exist in some projects must be adjusted.
-Alternative: log a `WARNING` and continue (keeps the build, loses the guarantee); or keep ignoring
-(status quo).
+**D1. [Decided] Raise on an `exclude` entry that matches no extra, and offer a warn-only mode?**
+_Decision: fail loudly by default; `HATCHLING_AUTOEXTRAS_WARN_ONLY=1` downgrades the recoverable
+problems (this one and the unknown option) to a `UserWarning`._ An `exclude` typo silently _adds_
+dependencies (often `dev` or `test`) to a public extra (F5), so the default must stop the build.
+The escape hatch is for a shared hook configuration that lists extras which only exist in some
+projects, or for rebuilding a project one does not own. See section 3.4 for the recoverable list and
+the reasons for an environment variable. Open sub-question: the variable name (alternatives:
+`AUTOEXTRAS_WARN_ONLY`, a `HATCHLING_AUTOEXTRAS_STRICT=0` that reads as "not strict"); the
+recommendation is the explicit, prefixed `..._WARN_ONLY`.
 
 **D2. Raise on invalid dependency entries instead of dropping them?** _Recommended: yes._ The two
 cases (non-list, bad entry) are the same mistake and hatchling raises for both afterwards; dropping
