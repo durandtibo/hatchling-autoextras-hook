@@ -75,6 +75,8 @@ Guidance for Claude Code and other coding agents working in this repository.
 - Raise errors with a `msg` variable (`msg = "..."; raise ValueError(msg)`), per `EM`/`TRY` rules.
   Use `ValueError` for invalid values and `TypeError` for invalid types.
 - Keep new options keyword-only (`*`) when they are added to a function signature.
+- The module docstring of `hooks.py` is the source of the list of properties. The **Properties**
+  table of `README.md` repeats it with the same names and the same statements: update both together.
 - Keep docstrings and documentation up to date and comprehensive: update them whenever the
   behaviour, signature or options of the code change.
 - New configuration options must be validated in `_validate_config`, given a default in
@@ -189,8 +191,10 @@ it up to date when you add, rename or remove a workflow.
 
 - Releases are immutable exact version tags (e.g. `v0.1.3`). Do not create or move floating tags
   (`v0`, `latest`) and do not document them as an option.
-- The version lives only in `pyproject.toml`; the integration test project pins
-  `hatchling-autoextras-hook>=<version>` and must be kept consistent when it is bumped.
+- The version lives only in `pyproject.toml`. The integration test project installs the hook from
+  the working tree through a `file://` URI (no version to keep consistent) and pins
+  `hatchling==<version of the test environment>`, so the hatchling matrix of the CI builds real
+  projects.
 
 ## Reporting
 
