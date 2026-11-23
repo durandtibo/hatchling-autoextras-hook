@@ -69,7 +69,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 # The options of the hook and their default values. This table is the single
 # source of truth for the allowed keys of the hook table.
-_DEFAULTS: dict[str, Any] = {"group-name": "all", "exclude": [], "overwrite": False}
+_DEFAULTS: dict[str, Any] = {"extra-name": "all", "exclude": [], "overwrite": False}
 
 # The table of the configuration, named by the messages of the configuration problems.
 _TABLE = "[tool.hatch.metadata.hooks.autoextras]"
@@ -91,13 +91,13 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
     and creates an 'all' extra that includes all of them.
 
     Configuration options (in pyproject.toml):
-        group-name: Name of the combined extras group (default: "all")
-        exclude: List of extra names to exclude from the combined group (default: [])
-        overwrite: Whether to overwrite existing group (default: False)
+        extra-name: Name of the generated extra (default: "all")
+        exclude: List of extra names to exclude from the generated extra (default: [])
+        overwrite: Whether to overwrite an existing extra (default: False)
 
     Extra names are compared after the normalization of PEP 685, like
     hatchling does: ``Dev_Extra``, ``dev-extra`` and ``dev.extra`` are
-    the same extra. This applies to ``group-name``, ``exclude`` and to
+    the same extra. This applies to ``extra-name``, ``exclude`` and to
     the check of an existing extra with the generated name.
 
     Unknown options are rejected with a ``ValueError``. Setting the
@@ -110,7 +110,7 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
     Example configuration:
         [tool.hatch.metadata.hooks.autoextras]
-        group-name = "complete"
+        extra-name = "complete"
         exclude = ["dev", "test"]
         overwrite = false
 
@@ -144,12 +144,12 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
         Raises:
             ValueError: If an unknown option is given (a warning in the
-                warn-only mode), if ``group-name`` is not a valid extra
+                warn-only mode), if ``extra-name`` is not a valid extra
                 name, if ``exclude`` contains the generated extra, or
                 if the environment variable
                 ``HATCHLING_AUTOEXTRAS_WARN_ONLY`` has an unrecognized
                 value.
-            TypeError: If ``group-name`` is not a string, ``exclude`` is
+            TypeError: If ``extra-name`` is not a string, ``exclude`` is
                 not a list of strings or ``overwrite`` is not a boolean.
         """
         self._warn_only: bool = _read_warn_only()
@@ -186,14 +186,14 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
                 ``exclude`` contains the generated extra.
             TypeError: If any configuration option has a wrong type.
         """
-        group_name = self.config["group-name"]
-        if not isinstance(group_name, str):
-            msg = f"'group-name' in {_TABLE} must be a string"
+        extra_name = self.config["extra-name"]
+        if not isinstance(extra_name, str):
+            msg = f"'extra-name' in {_TABLE} must be a string"
             raise TypeError(msg)
-        if not _NAME_PATTERN.fullmatch(group_name):
+        if not _NAME_PATTERN.fullmatch(extra_name):
             msg = (
-                f"'group-name' in {_TABLE} must be a valid extra name (letters, digits, '-', "
-                f"'_' and '.', starting and ending with a letter or a digit), got {group_name!r}"
+                f"'extra-name' in {_TABLE} must be a valid extra name (letters, digits, '-', "
+                f"'_' and '.', starting and ending with a letter or a digit), got {extra_name!r}"
             )
             raise ValueError(msg)
 
@@ -208,22 +208,21 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             raise TypeError(msg)
 
         # The validated options are stored once: `update` never reads `self.config`
-        self._group_name: str = group_name  # written to the metadata, as spelled by the user
-        self._group: str = _normalize(group_name)  # compared
+        self._extra_name: str = extra_name  # written to the metadata, as spelled by the user
+        self._extra: str = _normalize(extra_name)  # compared
         self._exclude: frozenset[str] = frozenset(_normalize(name) for name in exclude)
         self._overwrite: bool = overwrite
-        if self._group in self._exclude:
-            msg = f"'exclude' in {_TABLE} must not contain the generated extra '{group_name}'"
+        if self._extra in self._exclude:
+            msg = f"'exclude' in {_TABLE} must not contain the generated extra '{extra_name}'"
             raise ValueError(msg)
 
     def update(self, metadata: dict[str, Any]) -> None:
-        r"""Update the project metadata to add the configured extras
-        group.
+        r"""Update the project metadata to add the configured extra.
 
         This method collects all dependencies from all optional extras
-        (excluding any existing group with the configured name and any
+        (excluding any existing extra with the configured name and any
         extras in the exclude list), removes duplicate strings, sorts
-        them alphabetically, and creates/updates the extras group with
+        them alphabetically, and creates/updates the generated extra with
         the combined list. Two dependencies are duplicates if they are
         the same string after stripping the whitespace around them:
         the requirements are not parsed, hatchling merges the
@@ -237,7 +236,7 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
                 dictionary is modified in place.
 
         Raises:
-            ValueError: If an extra with the configured group name
+            ValueError: If an extra with the configured extra name
                 already exists and overwrite is False, if ``exclude``
                 contains a name that matches no extra (a warning in the
                 warn-only mode), or if a dependency is a blank string.
@@ -247,8 +246,8 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
                 string respectively.
 
         Note:
-            If no optional dependencies exist, an empty group is
-            created. Any pre-existing extras group will be completely
+            If no optional dependencies exist, an empty extra is
+            created. Any pre-existing extra with that name is completely
             replaced if overwrite is True. The dependencies of an
             excluded extra are not inspected.
         """
@@ -258,12 +257,12 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             raise TypeError(msg)
 
         by_name = {_normalize(name): name for name in optional_dependencies}
-        existing = by_name.get(self._group)
+        existing = by_name.get(self._extra)
         if existing is not None and not self._overwrite:
             msg = (
-                f"Cannot create the '{self._group_name}' extra: '{existing}' already exists. "
+                f"Cannot create the '{self._extra_name}' extra: '{existing}' already exists. "
                 f"Existing extras: {list(optional_dependencies)}. "
-                f"Configure a different 'group-name' in pyproject.toml or set 'overwrite = true'"
+                f"Configure a different 'extra-name' in pyproject.toml or set 'overwrite = true'"
             )
             raise ValueError(msg)
         unmatched = sorted(self._exclude - by_name.keys())
@@ -274,7 +273,7 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         sources = [
             name
             for name in optional_dependencies
-            if (key := _normalize(name)) != self._group and key not in self._exclude
+            if (key := _normalize(name)) != self._extra and key not in self._exclude
         ]
         dependencies = {
             dep for name in sources for dep in _dependencies(name, optional_dependencies[name])
@@ -282,15 +281,15 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
         # Everything is valid: the metadata is modified in one last step
         if existing is not None:
-            logger.debug("Overwriting existing '%s' group", existing)
+            logger.debug("Overwriting existing '%s' extra", existing)
             del optional_dependencies[existing]
-        optional_dependencies[self._group_name] = sorted(dependencies)
+        optional_dependencies[self._extra_name] = sorted(dependencies)
         # The key is absent from the metadata only if `optional_dependencies` is a new dict
         metadata["optional-dependencies"] = optional_dependencies
 
         logger.debug(
             "Created '%s' with %d dependencies from %d extras: %s",
-            self._group_name,
+            self._extra_name,
             len(dependencies),
             len(sources),
             sources,
