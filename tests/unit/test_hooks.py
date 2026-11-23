@@ -215,7 +215,7 @@ def test_update_does_not_overwrite_all() -> None:
         }
     }
     hook = AutoExtrasMetadataHook(root="test", config={})
-    with pytest.raises(RuntimeError, match=r"Cannot create 'all' group: already exists."):
+    with pytest.raises(ValueError, match=r"Cannot create the 'all' extra: 'all' already exists"):
         hook.update(metadata)
 
 
@@ -288,7 +288,9 @@ def test_update_overwrite_with_exclude() -> None:
 def test_update_does_not_overwrite_custom_group() -> None:
     metadata = {"optional-dependencies": {"complete": ["old"], "dev": ["pytest"]}}
     hook = AutoExtrasMetadataHook("test", {"group-name": "complete"})
-    with pytest.raises(RuntimeError, match=r"Cannot create 'complete' group") as exc_info:
+    with pytest.raises(
+        ValueError, match=r"Cannot create the 'complete' extra: 'complete' already exists"
+    ) as exc_info:
         hook.update(metadata)
     assert "overwrite = true" in str(exc_info.value)
     assert metadata["optional-dependencies"]["complete"] == ["old"]
@@ -550,20 +552,22 @@ def test_update_exclude_matches_other_separator() -> None:
 
 def test_update_conflict_is_case_insensitive() -> None:
     metadata = {"optional-dependencies": {"All": ["old"], "dev": ["pytest"]}}
-    with pytest.raises(RuntimeError, match=r"Cannot create 'all' group: already exists"):
+    with pytest.raises(ValueError, match=r"Cannot create the 'all' extra: 'All' already exists"):
         AutoExtrasMetadataHook("test", {}).update(metadata)
 
 
 def test_update_conflict_failure_leaves_metadata_unchanged() -> None:
     metadata = {"optional-dependencies": {"All": ["old"], "dev": ["pytest"]}}
-    with pytest.raises(RuntimeError, match=r"already exists"):
+    with pytest.raises(ValueError, match=r"already exists"):
         AutoExtrasMetadataHook("test", {}).update(metadata)
     assert metadata == {"optional-dependencies": {"All": ["old"], "dev": ["pytest"]}}
 
 
 def test_update_conflict_with_other_separator() -> None:
     metadata = {"optional-dependencies": {"my.extra": ["old"], "dev": ["pytest"]}}
-    with pytest.raises(RuntimeError, match=r"Cannot create 'my_extra' group: already exists"):
+    with pytest.raises(
+        ValueError, match=r"Cannot create the 'my_extra' extra: 'my.extra' already exists"
+    ):
         AutoExtrasMetadataHook("test", {"group-name": "my_extra"}).update(metadata)
 
 
@@ -738,7 +742,7 @@ def test_update_exclude_unmatched_warn_only_result(monkeypatch: pytest.MonkeyPat
 def test_update_warn_only_does_not_downgrade_conflict(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(WARN_ONLY_ENV, "1")
     metadata = {"optional-dependencies": {"all": ["old"]}}
-    with pytest.raises(RuntimeError, match=r"already exists"):
+    with pytest.raises(ValueError, match=r"already exists"):
         AutoExtrasMetadataHook("test", {}).update(metadata)
 
 
@@ -811,7 +815,7 @@ def test_update_second_call_without_overwrite_raises() -> None:
     hook = AutoExtrasMetadataHook("test", {})
     metadata = {"optional-dependencies": {"dev": ["pytest"]}}
     hook.update(metadata)
-    with pytest.raises(RuntimeError, match=r"already exists"):
+    with pytest.raises(ValueError, match=r"already exists"):
         hook.update(metadata)
 
 
@@ -833,3 +837,15 @@ def test_update_logs_overwrite_only_with_overwrite(caplog: pytest.LogCaptureFixt
     with caplog.at_level(logging.DEBUG, logger="hatchling_autoextras_hook.hooks"):
         AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
     assert "Overwriting" not in caplog.text
+
+
+def test_update_conflict_message_lists_existing_extras() -> None:
+    metadata = {"optional-dependencies": {"all": ["old"], "dev": ["pytest"]}}
+    with pytest.raises(ValueError, match=r"Existing extras: \['all', 'dev'\]"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)
+
+
+def test_update_conflict_message_suggests_the_options() -> None:
+    metadata = {"optional-dependencies": {"all": ["old"]}}
+    with pytest.raises(ValueError, match=r"set 'overwrite = true'"):
+        AutoExtrasMetadataHook("test", {}).update(metadata)

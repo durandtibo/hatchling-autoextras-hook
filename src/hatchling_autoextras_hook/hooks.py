@@ -174,11 +174,10 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
                 dictionary is modified in place.
 
         Raises:
-            RuntimeError: If the configured group name already exists and
-                overwrite is False.
-            ValueError: If ``exclude`` contains a name that matches no
-                extra (a warning in the warn-only mode), or if a
-                dependency is a blank string.
+            ValueError: If an extra with the configured group name
+                already exists and overwrite is False, if ``exclude``
+                contains a name that matches no extra (a warning in the
+                warn-only mode), or if a dependency is a blank string.
             TypeError: If optional dependencies are not in the expected
                 format: the table of extras, the dependencies of an
                 extra and each dependency must be a table, a list and a
@@ -200,11 +199,11 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         existing = by_name.get(self._group)
         if existing is not None and not self.config["overwrite"]:
             msg = (
-                f"Cannot create '{group_name}' group: already exists. "
+                f"Cannot create the '{group_name}' extra: '{existing}' already exists. "
                 f"Existing extras: {list(optional_dependencies)}. "
                 f"Configure a different 'group-name' in pyproject.toml or set 'overwrite = true'"
             )
-            raise RuntimeError(msg)
+            raise ValueError(msg)
         unmatched = sorted(self._exclude - by_name.keys())
         if unmatched:
             self._report(f"'exclude' contains names that match no extra: {unmatched}")
