@@ -117,6 +117,33 @@ pip install your-package[all]
 - Validates its configuration (unknown options included) and fails early with clear error messages
 - Compatible with all Hatchling build targets (wheel, sdist)
 
+## Properties
+
+These are the guarantees of the hook:
+
+| Property                | Statement                                                                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Union of the extras     | The generated extra contains every dependency of every non-excluded extra, and nothing else. It never contains its own previous content.       |
+| Deterministic           | The output is the sorted list of the distinct dependency strings, whatever the order of the extras.                                            |
+| Additive                | Original extras are never modified, reordered or removed. Only the generated extra is added (or replaced when `overwrite = true`).             |
+| Atomic                  | The hook either completes or raises with the metadata unchanged.                                                                               |
+| Name-normalized         | Extra names are compared after the normalization of PEP 685 (`Dev_Extra`, `dev-extra` and `dev.extra` are the same extra).                      |
+| Strict                  | By default, an unknown option, a wrong type, an invalid name, a non-string or blank dependency, and an `exclude` entry that matches no extra raise. |
+| Lenient on request      | With `HATCHLING_AUTOEXTRAS_WARN_ONLY=1`, the unknown options and the unmatched `exclude` entries warn. Every other problem still raises.        |
+| Early and named errors  | Configuration errors are raised before any metadata is read. Metadata errors name the extra and the position of the faulty entry.              |
+| Pure                    | No file access, no global state, no state kept between calls. The only environment variable read is `HATCHLING_AUTOEXTRAS_WARN_ONLY`.          |
+| Minimal                 | One runtime dependency (`hatchling`), one hook, three options.                                                                                 |
+| Observable              | What was generated is logged at `DEBUG` level.                                                                                                 |
+
+Not guaranteed:
+
+- **Validity of a requirement.** The hook does not parse requirements. A string that is not a valid
+  PEP 508 requirement is copied as is and rejected by Hatchling afterwards.
+- **Semantic deduplication.** `numpy>=2` and `numpy >= 2` are two strings, so they are two entries of
+  the generated extra. Hatchling merges them when it normalizes the metadata.
+- **PEP 735 dependency groups**, `dynamic = ["optional-dependencies"]` and the Hatchling option
+  `allow-ambiguous-features`.
+
 ## Configuration
 
 All options are optional. Enabling the hook with an empty table is enough:
@@ -198,7 +225,7 @@ all = ["boto3>=1.0"]  # generated: dev and docs are excluded
 Notes:
 
 - Names are compared after the normalization of PEP 685: `exclude = ["B.c"]` excludes `B_c`, and
-  `exclude = ["A"]` excludes `a`.
+  `exclude = ["A"]` excludes `a` (see the matching rules in the [Properties](#properties)).
 - The generated extra cannot be excluded (`ValueError`).
 - A name that matches no extra raises a `ValueError` (a typo would otherwise put the dependencies
   of an extra you wanted to exclude into the generated extra). With
@@ -231,25 +258,27 @@ The value must be a boolean (`true`/`false`, not a string), otherwise a `TypeErr
 
 The build fails with an explicit message in the following cases:
 
-| Situation                                                          | Exception      |
-| ------------------------------------------------------------------ | -------------- |
-| An extra named `group-name` already exists and `overwrite = false` | `ValueError`   |
-| `group-name` is not a valid extra name                             | `ValueError`   |
-| `group-name` is not a string                                       | `TypeError`    |
-| `exclude` contains the generated extra                             | `ValueError`   |
-| `exclude` is not a list of strings                                 | `TypeError`    |
-| `overwrite` is not a boolean                                       | `TypeError`    |
-| `optional-dependencies` is not a table, or an extra is not a list  | `TypeError`    |
-| The hook table contains an unknown option (warning in warn-only)   | `ValueError`   |
-| `exclude` has a name that matches no extra (warning in warn-only)  | `ValueError`   |
-| A dependency of an extra is not a string                           | `TypeError`    |
-| A dependency of an extra is blank                                  | `ValueError`   |
+| Situation                                                          | Exception    | Warn-only mode |
+| ------------------------------------------------------------------ | ------------ | -------------- |
+| The hook table contains an unknown option                          | `ValueError` | warning        |
+| `exclude` has a name that matches no extra                         | `ValueError` | warning        |
+| An extra named `group-name` already exists and `overwrite = false` | `ValueError` | error          |
+| `group-name` is not a valid extra name                             | `ValueError` | error          |
+| `group-name` is not a string                                       | `TypeError`  | error          |
+| `exclude` contains the generated extra                             | `ValueError` | error          |
+| `exclude` is not a list of strings                                 | `TypeError`  | error          |
+| `overwrite` is not a boolean                                       | `TypeError`  | error          |
+| `optional-dependencies` is not a table, or an extra is not a list  | `TypeError`  | error          |
+| A dependency of an extra is not a string                           | `TypeError`  | error          |
+| A dependency of an extra is blank                                  | `ValueError` | error          |
+| `HATCHLING_AUTOEXTRAS_WARN_ONLY` has an unrecognized value         | `ValueError` | error          |
 
 ### Strict and warn-only modes
 
 Unknown options (for example `excludes` instead of `exclude`) and `exclude` entries that match no
 extra fail the build, because a typo would otherwise be ignored silently. A person who builds a
-project they do not control can downgrade these two problems to a `UserWarning` with an environment variable, which is read when the hook is created:
+project they do not control can downgrade these two problems to a `UserWarning` with an
+environment variable, which is read when the hook is created:
 
 ```bash
 HATCHLING_AUTOEXTRAS_WARN_ONLY=1 python -m build
@@ -257,8 +286,8 @@ HATCHLING_AUTOEXTRAS_WARN_ONLY=1 python -m build
 
 Accepted values (case-insensitive): `1`, `true`, `yes`, `on` enable the warn-only mode; `0`,
 `false`, `no`, `off`, an empty value or an unset variable keep the strict mode. Any other value
-raises a `ValueError`. The unknown option and the unmatched `exclude` entry are ignored in the warn-only mode. Every other problem
-still raises.
+raises a `ValueError`. The unknown option and the unmatched `exclude` entry are ignored in the
+warn-only mode. Every other problem still raises.
 
 ## Advanced Usage
 
@@ -273,7 +302,9 @@ overwrite = true
 
 ### Using with Other Metadata Hooks
 
-This hook is compatible with other Hatchling metadata hooks.
+The interaction with other metadata hooks, and with `dynamic = ["optional-dependencies"]`, is not
+specified: the hook only sees the static `optional-dependencies` table. Check the built metadata
+with your Hatchling version if you combine them.
 
 ### Python API
 
@@ -349,6 +380,14 @@ read `[dependency-groups]`), and check that they are not listed in `exclude`.
 
 **A:** No, not by default. The build fails with a `ValueError` so nothing is silently lost. Set
 `overwrite = true` to replace it, or use a different `group-name`.
+
+### Q: Why does the build fail on a typo?
+
+**A:** A typo in an option name (`excludes`) or in an `exclude` entry (`tset`) would otherwise be
+ignored silently, and the dependencies of an extra you meant to exclude (often `dev` or `test`) would
+end up in the public generated extra. The hook fails and names the culprit. To downgrade the unknown
+options and the unmatched `exclude` entries to warnings, set `HATCHLING_AUTOEXTRAS_WARN_ONLY=1` in
+the environment of the build (see [Strict and warn-only modes](#strict-and-warn-only-modes)).
 
 ### Q: Can I exclude specific extras from being included in `all`?
 
