@@ -7,6 +7,7 @@ __all__ = ["AutoExtrasMetadataHook"]
 import copy
 import logging
 import os
+import re
 import warnings
 from typing import Any
 
@@ -18,6 +19,10 @@ logger: logging.Logger = logging.getLogger(__name__)
 # The options of the hook and their default values. This table is the single
 # source of truth for the allowed keys of the hook table.
 _DEFAULTS: dict[str, Any] = {"group-name": "all", "exclude": [], "overwrite": False}
+
+# Valid name of an extra: the rule of hatchling (`is_valid_project_name`). It is
+# copied because `hatchling.metadata.utils` is not public API.
+_NAME_PATTERN = re.compile(r"^([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9._-]*[A-Za-z0-9])$")
 
 # Environment variable that downgrades the recoverable problems to warnings.
 _WARN_ONLY_ENV = "HATCHLING_AUTOEXTRAS_WARN_ONLY"
@@ -35,6 +40,11 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         group-name: Name of the combined extras group (default: "all")
         exclude: List of extra names to exclude from the combined group (default: [])
         overwrite: Whether to overwrite existing group (default: False)
+
+    Extra names are compared after the normalization of PEP 685, like
+    hatchling does: ``Dev_Extra``, ``dev-extra`` and ``dev.extra`` are
+    the same extra. This applies to ``group-name``, ``exclude`` and to
+    the check of an existing extra with the generated name.
 
     Unknown options are rejected with a ``ValueError``. Setting the
     environment variable ``HATCHLING_AUTOEXTRAS_WARN_ONLY`` to ``1``,
@@ -111,12 +121,19 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         """Validate the plugin configuration.
 
         Raises:
-            ValueError: If any configuration option is invalid.
-            TypeError: If any configuration option is invalid.
+            ValueError: If any configuration option is invalid, or if
+                ``exclude`` contains the generated extra.
+            TypeError: If any configuration option has a wrong type.
         """
         group_name = self.config["group-name"]
-        if not isinstance(group_name, str) or not group_name.strip():
-            msg = "'group-name' must be a non-empty string"
+        if not isinstance(group_name, str):
+            msg = "'group-name' must be a string"
+            raise TypeError(msg)
+        if not _NAME_PATTERN.fullmatch(group_name):
+            msg = (
+                f"'group-name' must be a valid extra name (letters, digits, '-', '_' and '.', "
+                f"starting and ending with a letter or a digit), got {group_name!r}"
+            )
             raise ValueError(msg)
 
         exclude = self.config["exclude"]
@@ -128,6 +145,13 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         if not isinstance(overwrite, bool):
             msg = "'overwrite' must be a boolean"
             raise TypeError(msg)
+
+        # The normalized values are computed once, so `update` does no conversion
+        self._group: str = _normalize(group_name)
+        self._exclude: frozenset[str] = frozenset(_normalize(name) for name in exclude)
+        if self._group in self._exclude:
+            msg = f"'exclude' must not contain the generated extra '{group_name}'"
+            raise ValueError(msg)
 
     def update(self, metadata: dict[str, Any]) -> None:
         r"""Update the project metadata to add the configured extras
@@ -155,7 +179,6 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
         """
         # Get configuration options
         extras_group_name = self.config["group-name"]
-        exclude_groups = self.config["exclude"]
         overwrite = self.config["overwrite"]
 
         # Get optional dependencies
@@ -164,8 +187,9 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             msg = "'optional-dependencies' must be a table of extras"
             raise TypeError(msg)
 
-        # Check if the group already exists
-        if extras_group_name in optional_dependencies:
+        # Check if the group already exists (the names are compared normalized)
+        existing = next((n for n in optional_dependencies if _normalize(n) == self._group), None)
+        if existing is not None:
             if not overwrite:
                 existing_extras = list(optional_dependencies.keys())
                 msg = (
@@ -174,7 +198,7 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
                     f"Configure a different 'group-name' in pyproject.toml or set 'overwrite = true'"
                 )
                 raise RuntimeError(msg)
-            logger.debug("Overwriting existing '%s' group", extras_group_name)
+            logger.debug("Overwriting existing '%s' group", existing)
 
         # Collect all dependencies from all extras (except excluded ones)
         all_deps: set[str] = set()
@@ -182,7 +206,8 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
 
         for extra_name, deps in optional_dependencies.items():
             # Skip the configured group name and excluded groups
-            if extra_name == extras_group_name or extra_name in exclude_groups:
+            normalized = _normalize(extra_name)
+            if normalized == self._group or normalized in self._exclude:
                 continue
 
             if not isinstance(deps, list):
@@ -195,7 +220,10 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             )
             processed_extras.append(extra_name)
 
-        # Add the extras group with all dependencies (sorted for consistent output)
+        # Add the extras group with all dependencies (sorted for consistent output).
+        # The existing extra is replaced, even if it is spelled differently.
+        if existing is not None and existing != extras_group_name:
+            del optional_dependencies[existing]
         optional_dependencies[extras_group_name] = sorted(all_deps)
         metadata["optional-dependencies"] = optional_dependencies
 
@@ -206,6 +234,29 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             len(processed_extras),
             processed_extras,
         )
+
+
+def _normalize(name: str) -> str:
+    r"""Normalize the name of an extra (PEP 685 and PEP 503).
+
+    Args:
+        name: The name of the extra.
+
+    Returns:
+        The normalized name: lowercase, with every run of ``-``, ``_``
+            and ``.`` replaced by one ``-``.
+
+    Example usage:
+
+    ```pycon
+
+    >>> from hatchling_autoextras_hook.hooks import _normalize
+    >>> _normalize("Dev_Extra")
+    'dev-extra'
+
+    ```
+    """
+    return re.sub(r"[-_.]+", "-", name).lower()
 
 
 def _read_warn_only() -> bool:
