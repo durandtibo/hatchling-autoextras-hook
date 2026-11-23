@@ -418,18 +418,18 @@ def test_unknown_option_warn_only_warns(monkeypatch: pytest.MonkeyPatch) -> None
         AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
 
 
-@pytest.mark.filterwarnings("ignore:Unknown option")
 def test_unknown_option_warn_only_is_dropped_from_config(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(WARN_ONLY_ENV, "1")
-    hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"], "group-name": "full"})
+    with pytest.warns(UserWarning, match=r"Unknown option"):
+        hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"], "group-name": "full"})
     assert hook.config == {"group-name": "full", "exclude": [], "overwrite": False}
 
 
-@pytest.mark.filterwarnings("ignore:Unknown option")
 def test_unknown_option_warn_only_ignores_the_option(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(WARN_ONLY_ENV, "1")
     metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"]}}
-    hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
+    with pytest.warns(UserWarning, match=r"Unknown option"):
+        hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
     hook.update(metadata)
     assert metadata == {
         "optional-dependencies": {
@@ -747,12 +747,12 @@ def test_update_exclude_unmatched_warn_only_warns(monkeypatch: pytest.MonkeyPatc
         hook.update(metadata)
 
 
-@pytest.mark.filterwarnings("ignore:.*match no extra")
 def test_update_exclude_unmatched_warn_only_result(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(WARN_ONLY_ENV, "1")
     metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"]}}
     hook = AutoExtrasMetadataHook("test", {"exclude": ["docs", "missing"]})
-    hook.update(metadata)
+    with pytest.warns(UserWarning, match=r"match no extra"):
+        hook.update(metadata)
     assert metadata == {
         "optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"], "all": ["pytest"]}
     }
