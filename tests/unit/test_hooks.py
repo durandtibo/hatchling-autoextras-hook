@@ -7,8 +7,17 @@ from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 from hatchling_autoextras_hook.hooks import (
     AutoExtrasMetadataHook,
+    _read_warn_only,
     hatch_register_metadata_hook,
 )
+
+WARN_ONLY_ENV = "HATCHLING_AUTOEXTRAS_WARN_ONLY"
+
+
+@pytest.fixture(autouse=True)
+def _unset_warn_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make the tests independent of the environment of the caller."""
+    monkeypatch.delenv(WARN_ONLY_ENV, raising=False)
 
 
 def test_plugin_name() -> None:
@@ -352,3 +361,134 @@ def test_update_logs_overwrite(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.DEBUG, logger="hatchling_autoextras_hook.hooks"):
         AutoExtrasMetadataHook("test", {"overwrite": True}).update(metadata)
     assert "Overwriting existing 'all' group" in caplog.text
+
+
+#########################################
+#     Tests for the unknown options     #
+#########################################
+
+
+def test_unknown_option_raises() -> None:
+    with pytest.raises(ValueError, match=r"Unknown option\(s\): \['excludes'\]"):
+        AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
+
+
+def test_unknown_option_message_lists_valid_options() -> None:
+    with pytest.raises(
+        ValueError, match=r"Valid options: \['exclude', 'group-name', 'overwrite'\]"
+    ):
+        AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
+
+
+def test_unknown_options_are_reported_sorted() -> None:
+    with pytest.raises(ValueError, match=r"Unknown option\(s\): \['alpha', 'zeta'\]"):
+        AutoExtrasMetadataHook("test", {"zeta": 1, "alpha": 2})
+
+
+def test_unknown_option_with_valid_options_raises() -> None:
+    with pytest.raises(ValueError, match=r"Unknown option\(s\): \['typo'\]"):
+        AutoExtrasMetadataHook("test", {"group-name": "full", "typo": True})
+
+
+def test_unknown_option_warn_only_warns(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    with pytest.warns(UserWarning, match=r"Unknown option\(s\): \['excludes'\]"):
+        AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
+
+
+def test_unknown_option_warn_only_is_dropped_from_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    with pytest.warns(UserWarning, match=r"Unknown option"):
+        hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"], "group-name": "full"})
+    assert hook.config == {"group-name": "full", "exclude": [], "overwrite": False}
+
+
+def test_unknown_option_warn_only_ignores_the_option(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    metadata = {"optional-dependencies": {"dev": ["pytest"], "docs": ["sphinx"]}}
+    with pytest.warns(UserWarning, match=r"Unknown option"):
+        hook = AutoExtrasMetadataHook("test", {"excludes": ["dev"]})
+    hook.update(metadata)
+    assert metadata == {
+        "optional-dependencies": {
+            "dev": ["pytest"],
+            "docs": ["sphinx"],
+            "all": ["pytest", "sphinx"],
+        }
+    }
+
+
+def test_warn_only_does_not_downgrade_invalid_group_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    with pytest.raises(ValueError, match=r"'group-name' must be a non-empty string"):
+        AutoExtrasMetadataHook("test", {"group-name": ""})
+
+
+def test_warn_only_does_not_downgrade_invalid_exclude(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    with pytest.raises(TypeError, match=r"'exclude' must be a list of extra names"):
+        AutoExtrasMetadataHook("test", {"exclude": "dev"})
+
+
+def test_warn_only_does_not_downgrade_invalid_overwrite(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    with pytest.raises(TypeError, match=r"'overwrite' must be a boolean"):
+        AutoExtrasMetadataHook("test", {"overwrite": "true"})
+
+
+def test_default_config_is_not_shared_between_hooks() -> None:
+    hook1 = AutoExtrasMetadataHook("test", {})
+    hook1.config["exclude"].append("dev")
+    assert AutoExtrasMetadataHook("test", {}).config["exclude"] == []
+
+
+###############################
+#     Tests for _report       #
+###############################
+
+
+def test_report_raises_by_default() -> None:
+    hook = AutoExtrasMetadataHook("test", {})
+    with pytest.raises(ValueError, match=r"something is wrong"):
+        hook._report("something is wrong")
+
+
+def test_report_warns_in_warn_only_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "1")
+    hook = AutoExtrasMetadataHook("test", {})
+    with pytest.warns(UserWarning, match=r"something is wrong"):
+        hook._report("something is wrong")
+
+
+#####################################
+#     Tests for _read_warn_only     #
+#####################################
+
+
+@pytest.mark.parametrize("value", ["1", "true", "TRUE", "True", "yes", "YES", "on", "On", " 1 "])
+def test_read_warn_only_enabled(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, value)
+    assert _read_warn_only() is True
+
+
+@pytest.mark.parametrize("value", ["0", "false", "FALSE", "no", "NO", "off", "Off", "", "  "])
+def test_read_warn_only_disabled(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, value)
+    assert _read_warn_only() is False
+
+
+def test_read_warn_only_unset() -> None:
+    assert _read_warn_only() is False
+
+
+@pytest.mark.parametrize("value", ["maybe", "2", "enabled", "y"])
+def test_read_warn_only_invalid(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, value)
+    with pytest.raises(ValueError, match=r"HATCHLING_AUTOEXTRAS_WARN_ONLY"):
+        _read_warn_only()
+
+
+def test_init_invalid_warn_only_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(WARN_ONLY_ENV, "maybe")
+    with pytest.raises(ValueError, match=r"Invalid value 'maybe'"):
+        AutoExtrasMetadataHook("test", {})

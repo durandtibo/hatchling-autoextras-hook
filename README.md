@@ -114,7 +114,7 @@ pip install your-package[all]
 - Removes duplicates across extras and normalizes whitespace
 - Sorts dependencies alphabetically for reproducible output
 - Configurable group name, exclusion list, and overwrite behavior
-- Validates its configuration and fails early with clear error messages
+- Validates its configuration (unknown options included) and fails early with clear error messages
 - Compatible with all Hatchling build targets (wheel, sdist)
 
 ## Configuration
@@ -231,6 +231,22 @@ The build fails with an explicit message in the following cases:
 | `exclude` is not a list of strings                                 | `TypeError`    |
 | `overwrite` is not a boolean                                       | `TypeError`    |
 | `optional-dependencies` is not a table, or an extra is not a list  | `TypeError`    |
+| The hook table contains an unknown option                          | `ValueError`   |
+
+### Strict and warn-only modes
+
+Unknown options (for example `excludes` instead of `exclude`) fail the build, because a typo would
+otherwise be ignored silently. A person who builds a project they do not control can downgrade this
+problem to a `UserWarning` with an environment variable, which is read when the hook is created:
+
+```bash
+HATCHLING_AUTOEXTRAS_WARN_ONLY=1 python -m build
+```
+
+Accepted values (case-insensitive): `1`, `true`, `yes`, `on` enable the warn-only mode; `0`,
+`false`, `no`, `off`, an empty value or an unset variable keep the strict mode. Any other value
+raises a `ValueError`. The unknown option is ignored in the warn-only mode. Every other problem
+still raises.
 
 ## Advanced Usage
 
