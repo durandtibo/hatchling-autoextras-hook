@@ -278,6 +278,34 @@ def test_autoextras_integration_unknown_option_warn_only_metadata(tmp_path: Path
     assert read_metadata(find_wheel_path(tmp_path / "typo")) == expected
 
 
+def test_autoextras_integration_normalized_group_name(tmp_path: Path) -> None:
+    r"""A group name that is not normalized is normalized by
+    hatchling."""
+    metadata = build_wheel_metadata(tmp_path / "project", config='group-name = "Full_Extra"')
+    assert "Provides-Extra: full-extra" in metadata
+    assert "Requires-Dist: numpy>=2.0; extra == 'full-extra'" in metadata
+    assert "Requires-Dist: pytest>=9.0; extra == 'full-extra'" in metadata
+
+
+def test_autoextras_integration_exclude_normalized(tmp_path: Path) -> None:
+    r"""The excluded names are matched like hatchling does."""
+    metadata = build_wheel_metadata(
+        tmp_path / "project",
+        config='exclude = ["DEV"]',
+        extra_extras='my_extra = [ "rich>=13" ]',
+    )
+    assert "Requires-Dist: pytest>=9.0; extra == 'all'" not in metadata
+    assert "Requires-Dist: rich>=13; extra == 'all'" in metadata
+
+
+def test_autoextras_integration_existing_group_other_spelling_fails(tmp_path: Path) -> None:
+    r"""An existing extra with another spelling of the name is a
+    conflict, detected by the hook."""
+    result = build_project(tmp_path / "project", extra_extras='All = [ "old-dep" ]')
+    assert result.returncode != 0
+    assert "Cannot create 'all' group: already exists" in result.stdout + result.stderr
+
+
 #######################################
 #     Tests for validate_metadata     #
 #######################################

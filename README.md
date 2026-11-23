@@ -127,7 +127,7 @@ All options are optional. Enabling the hook with an empty table is enough:
 
 | Option       | Type      | Default | Description                                                       |
 | ------------ | --------- | ------- | ----------------------------------------------------------------- |
-| `group-name` | string    | `"all"` | Name of the generated extra. Must be a non-empty string.          |
+| `group-name` | string    | `"all"` | Name of the generated extra. Must be a valid extra name.          |
 | `exclude`    | list[str] | `[]`    | Names of extras that must not be included in the generated extra. |
 | `overwrite`  | boolean   | `false` | Replace an existing extra with the same name instead of raising.  |
 
@@ -156,8 +156,11 @@ Regardless of the options, the hook:
 #### `group-name`
 
 Name of the extra that the hook generates (default: `"all"`). Users install it with
-`pip install my-package[<group-name>]`. The value must be a non-empty string, otherwise a
-`ValueError` is raised.
+`pip install my-package[<group-name>]`. The value must be a valid extra name (letters, digits, `-`,
+`_` and `.`, starting and ending with a letter or a digit, no whitespace), otherwise a `ValueError`
+is raised (a `TypeError` if it is not a string). Names are compared after the normalization of
+[PEP 685](https://peps.python.org/pep-0685/), like Hatchling does: `Full_Extra`, `full-extra` and
+`full.extra` are the same extra.
 
 ```toml
 [tool.hatch.metadata.hooks.autoextras]
@@ -194,7 +197,9 @@ all = ["boto3>=1.0"]  # generated: dev and docs are excluded
 
 Notes:
 
-- Names must match the extra names exactly (case-sensitive).
+- Names are compared after the normalization of PEP 685: `exclude = ["B.c"]` excludes `B_c`, and
+  `exclude = ["A"]` excludes `a`.
+- The generated extra cannot be excluded (`ValueError`).
 - Names that do not match any extra are silently ignored.
 - A dependency that also appears in a non-excluded extra is still included.
 - The value must be a list of strings, otherwise a `TypeError` is raised.
@@ -202,7 +207,7 @@ Notes:
 #### `overwrite`
 
 Boolean (default: `false`) controlling what happens when an extra named `group-name` already exists
-in `[project.optional-dependencies]`.
+in `[project.optional-dependencies]` (the names are compared normalized, so `All` conflicts with `all`).
 
 - `false`: the build fails with a `RuntimeError`, so a hand-written extra is never lost silently.
 - `true`: the existing extra is replaced by the generated one. Its previous content is **not**
@@ -227,7 +232,9 @@ The build fails with an explicit message in the following cases:
 | Situation                                                          | Exception      |
 | ------------------------------------------------------------------ | -------------- |
 | An extra named `group-name` already exists and `overwrite = false` | `RuntimeError` |
-| `group-name` is not a non-empty string                             | `ValueError`   |
+| `group-name` is not a valid extra name                             | `ValueError`   |
+| `group-name` is not a string                                       | `TypeError`    |
+| `exclude` contains the generated extra                             | `ValueError`   |
 | `exclude` is not a list of strings                                 | `TypeError`    |
 | `overwrite` is not a boolean                                       | `TypeError`    |
 | `optional-dependencies` is not a table, or an extra is not a list  | `TypeError`    |
