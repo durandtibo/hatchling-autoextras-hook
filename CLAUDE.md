@@ -65,8 +65,8 @@ Guidance for Claude Code and other coding agents working in this repository.
   messages, PR descriptions). Look at a few neighbouring files first, and do not introduce a new
   convention or reformat code you do not otherwise change.
 - Every function and method, public or private (leading underscore), needs a docstring with `Args`,
-  `Returns`, `Raises` as relevant, and a doctest-style example where useful (examples are run by `xdoctest`; use ` ```pycon `
-  blocks closed with a blank line, as in `hooks.py`).
+  `Returns`, `Raises` as relevant, and a doctest-style example where useful (examples are run by
+  `xdoctest`; use ` ```pycon ` blocks closed with a blank line, as in `hooks.py`).
 - Document constructor arguments in the class docstring or in `__init__` consistently with
   existing code; keep the documented configuration options in `AutoExtrasMetadataHook` in sync
   with `README.md` whenever options change.
