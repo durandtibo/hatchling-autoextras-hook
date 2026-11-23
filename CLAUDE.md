@@ -96,12 +96,34 @@ Guidance for Claude Code and other coding agents working in this repository.
   when only needed for annotations).
 - One behaviour per test: a test has one `assert` or one `pytest.raises`. Split a test that checks
   several things into several tests.
+- A test may combine `pytest.raises` (or `pytest.warns`) with an `assert` that checks the state
+  after the error (for example that `metadata` was not mutated). This is one behaviour: the call
+  fails and leaves the state unchanged.
+
+  ```python
+  with pytest.raises(ValueError, match=r"already exists"):
+      hook.update(metadata)
+  assert metadata == {...}
+  ```
+
+- Do not use `contextlib.suppress` in place of `pytest.raises` to swallow an expected exception:
+  it passes when no exception is raised, so the test does not prove the error happens.
+- Section headers in the tests have three lines. The second line is `#`, 5 spaces, the name,
+  5 spaces and `#`. The first and third lines repeat `#` to match the length of the second line:
+
+  ```python
+  ###########################
+  #     Tests for Fixed     #
+  ###########################
+  ```
+
 - Keep the unit tests simple and fast: no sleeps, no large data, no real network or heavy I/O,
   and no logic (loops, branches) in the test body. Anything slow belongs in `tests/integration/`.
 - Use `pytest.mark.parametrize` for the same check on several values.
 - Every `pytest.raises` (and `pytest.warns`) must define `match` with a regular expression for the
   message (raw string if it has metacharacters), so a test does not pass on an unrelated error of
-  the same type.
+  the same type. An exception raised by a patched stand-in needs an explicit message for the same
+  reason (`side_effect=KeyboardInterrupt("interrupted")`, not `side_effect=KeyboardInterrupt`).
 - Add the missing tests to get 100% coverage of the code you add or change
   (`.venv/bin/pytest tests --cov=hatchling_autoextras_hook --cov-report=term-missing`). Do not use
   `# pragma: no cover` to skip a line that can be tested.
