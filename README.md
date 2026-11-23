@@ -1,5 +1,6 @@
 # hatchling-autoextras-hook
 
+<!-- markdownlint-disable MD013 -->
 <p align="center">
     <a href="https://github.com/durandtibo/hatchling-autoextras-hook/actions/workflows/ci.yaml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/durandtibo/hatchling-autoextras-hook/ci.yaml?branch=main&label=CI&logo=github"></a>
     <a href="https://github.com/durandtibo/hatchling-autoextras-hook/actions/workflows/nightly-package.yaml"><img alt="Nightly Package Tests" src="https://img.shields.io/github/actions/workflow/status/durandtibo/hatchling-autoextras-hook/nightly-package.yaml?label=nightly&logo=github"></a>
@@ -18,6 +19,7 @@
     <a href="https://pepy.tech/project/hatchling-autoextras-hook"><img alt="Monthly downloads" src="https://img.shields.io/pepy/dm/hatchling-autoextras-hook"></a>
     <a href="https://github.com/durandtibo/hatchling-autoextras-hook/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/durandtibo/hatchling-autoextras-hook?logo=github"></a>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 Hatchling metadata hook to automatically generate an `all` extra that combines all optional
 dependencies.

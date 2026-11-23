@@ -11,7 +11,8 @@ We release patches for security vulnerabilities for the following versions:
 
 ## Reporting a Vulnerability
 
-We take the security of `hatchling-autoextras-hook` seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+We take the security of `hatchling-autoextras-hook` seriously. If you believe you have found a
+security vulnerability, please report it to us as described below.
 
 ### Where to Report
 
@@ -36,8 +37,10 @@ Please include the following information in your report:
 ### Response Timeline
 
 - We will acknowledge receipt of your vulnerability report within 3 business days
-- We will send a more detailed response within 7 days indicating the next steps in handling your report
-- We will keep you informed about the progress towards a fix and may ask for additional information or guidance
+- We will send a more detailed response within 7 days indicating the next steps in handling your
+  report
+- We will keep you informed about the progress towards a fix and may ask for additional
+  information or guidance
 
 ### Disclosure Policy
 
@@ -51,11 +54,14 @@ Please include the following information in your report:
 
 When using `hatchling-autoextras-hook`:
 
-1. **Keep Dependencies Updated**: Always use the latest version of the package to benefit from security patches
-2. **Review Build Configuration**: Ensure your `pyproject.toml` configuration follows security best practices
+1. **Keep Dependencies Updated**: Always use the latest version of the package to benefit from
+   security patches
+2. **Review Build Configuration**: Ensure your `pyproject.toml` configuration follows security
+   best practices
 3. **Audit Dependencies**: Regularly audit the dependencies listed in your project's extras
 4. **Use Virtual Environments**: Always build packages in isolated virtual environments
-5. **Verify Build Artifacts**: Check that generated wheels and source distributions contain only expected files
+5. **Verify Build Artifacts**: Check that generated wheels and source distributions contain only
+   expected files
 
 ## Known Security Considerations
 
