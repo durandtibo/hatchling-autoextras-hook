@@ -391,7 +391,9 @@ def test_autoextras_integration_unknown_option_message(
     unknown_option: subprocess.CompletedProcess[str],
 ) -> None:
     r"""The error names the unknown option."""
-    assert "Unknown option(s): ['excludes']" in output(unknown_option)
+    assert "Unknown option(s) in [tool.hatch.metadata.hooks.autoextras]: ['excludes']" in output(
+        unknown_option
+    )
 
 
 def test_autoextras_integration_exclude_unmatched_fails(
@@ -405,7 +407,10 @@ def test_autoextras_integration_exclude_unmatched_message(
     unmatched_exclude: subprocess.CompletedProcess[str],
 ) -> None:
     r"""The error names the unmatched entry."""
-    assert "'exclude' contains names that match no extra: ['tset']" in output(unmatched_exclude)
+    assert (
+        "'exclude' in [tool.hatch.metadata.hooks.autoextras] contains names that match no extra: ['tset']"
+        in output(unmatched_exclude)
+    )
 
 
 def test_autoextras_integration_blank_dependency_fails(
@@ -485,7 +490,9 @@ def test_autoextras_integration_unknown_option_warn_only_message(
 ) -> None:
     r"""With the warn-only variable, the unknown option is named in a
     warning."""
-    assert "Unknown option(s): ['excludes']" in output(warn_unknown_option.result)
+    assert "Unknown option(s) in [tool.hatch.metadata.hooks.autoextras]: ['excludes']" in output(
+        warn_unknown_option.result
+    )
 
 
 def test_autoextras_integration_unknown_option_warn_only_metadata(

@@ -240,7 +240,8 @@ in `[project.optional-dependencies]` (the names are compared normalized, so `All
 
 - `false`: the build fails with a `ValueError`, so a hand-written extra is never lost silently.
 - `true`: the existing extra is replaced by the generated one. Its previous content is **not**
-  merged: it is ignored when collecting dependencies and discarded.
+  merged: it is ignored when collecting dependencies and discarded. The generated extra is
+  always the last key of `optional-dependencies`, whatever the spelling of the replaced extra.
 
 ```toml
 [project.optional-dependencies]
