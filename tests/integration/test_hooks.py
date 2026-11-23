@@ -241,7 +241,7 @@ def test_autoextras_integration_existing_group_fails(tmp_path: Path) -> None:
     build_minimal_project(path, extra_extras='all = [ "old-dep" ]')
     result = run_uv_build(path)
     assert result.returncode != 0
-    assert "already exists" in result.stdout + result.stderr
+    assert "Cannot create the 'all' extra: 'all' already exists" in result.stdout + result.stderr
 
 
 def test_autoextras_integration_overwrite(tmp_path: Path) -> None:
@@ -303,7 +303,7 @@ def test_autoextras_integration_existing_group_other_spelling_fails(tmp_path: Pa
     conflict, detected by the hook."""
     result = build_project(tmp_path / "project", extra_extras='All = [ "old-dep" ]')
     assert result.returncode != 0
-    assert "Cannot create 'all' group: already exists" in result.stdout + result.stderr
+    assert "Cannot create the 'all' extra: 'All' already exists" in result.stdout + result.stderr
 
 
 def test_autoextras_integration_exclude_unmatched_fails(tmp_path: Path) -> None:
