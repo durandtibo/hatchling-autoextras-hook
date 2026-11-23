@@ -306,6 +306,43 @@ def test_autoextras_integration_existing_group_other_spelling_fails(tmp_path: Pa
     assert "Cannot create 'all' group: already exists" in result.stdout + result.stderr
 
 
+def test_autoextras_integration_exclude_unmatched_fails(tmp_path: Path) -> None:
+    r"""An ``exclude`` entry that matches no extra fails the build and
+    is named in the error."""
+    result = build_project(tmp_path / "project", config='exclude = ["tset"]')
+    assert result.returncode != 0
+    assert "'exclude' contains names that match no extra: ['tset']" in result.stdout + result.stderr
+
+
+def test_autoextras_integration_exclude_unmatched_warn_only(tmp_path: Path) -> None:
+    r"""With the warn-only variable, the unmatched entry warns and the
+    METADATA is the one of the build without the entry."""
+    result = build_project(
+        tmp_path / "typo", config='exclude = ["dev", "tset"]', env={WARN_ONLY_ENV: "1"}
+    )
+    expected = build_wheel_metadata(tmp_path / "clean", config='exclude = ["dev"]')
+    assert result.returncode == 0
+    assert "match no extra: ['tset']" in result.stdout + result.stderr
+    assert read_metadata(find_wheel_path(tmp_path / "typo")) == expected
+
+
+def test_autoextras_integration_blank_dependency_fails(tmp_path: Path) -> None:
+    r"""A blank dependency fails the build and names the source
+    extra."""
+    result = build_project(tmp_path / "project", extra_extras='docs = [ "sphinx", " " ]')
+    assert result.returncode != 0
+    assert "Dependency #2 of extra 'docs' must not be blank" in result.stdout + result.stderr
+
+
+def test_autoextras_integration_self_reference(tmp_path: Path) -> None:
+    r"""An extra that references the package is copied as is and resolved
+    by hatchling: the generated extra contains the dependencies once."""
+    metadata = build_wheel_metadata(
+        tmp_path / "project", extra_extras='full = [ "testpkg[numpy]" ]'
+    )
+    assert metadata.count("Requires-Dist: numpy>=2.0; extra == 'all'") == 1
+
+
 #######################################
 #     Tests for validate_metadata     #
 #######################################

@@ -147,7 +147,7 @@ Regardless of the options, the hook:
 
 - Leaves all original extras unchanged
 - Never includes the generated extra itself in the list of collected dependencies
-- Ignores non-string and blank dependency entries
+- Rejects non-string and blank dependency entries (the error names the extra and the position)
 - Creates an empty extra if the project has no optional dependencies
 - Logs what it generated at `DEBUG` level
 
@@ -200,7 +200,9 @@ Notes:
 - Names are compared after the normalization of PEP 685: `exclude = ["B.c"]` excludes `B_c`, and
   `exclude = ["A"]` excludes `a`.
 - The generated extra cannot be excluded (`ValueError`).
-- Names that do not match any extra are silently ignored.
+- A name that matches no extra raises a `ValueError` (a typo would otherwise put the dependencies
+  of an extra you wanted to exclude into the generated extra). With
+  `HATCHLING_AUTOEXTRAS_WARN_ONLY=1` it emits a `UserWarning` and has no effect.
 - A dependency that also appears in a non-excluded extra is still included.
 - The value must be a list of strings, otherwise a `TypeError` is raised.
 
@@ -238,13 +240,16 @@ The build fails with an explicit message in the following cases:
 | `exclude` is not a list of strings                                 | `TypeError`    |
 | `overwrite` is not a boolean                                       | `TypeError`    |
 | `optional-dependencies` is not a table, or an extra is not a list  | `TypeError`    |
-| The hook table contains an unknown option                          | `ValueError`   |
+| The hook table contains an unknown option (warning in warn-only)   | `ValueError`   |
+| `exclude` has a name that matches no extra (warning in warn-only)  | `ValueError`   |
+| A dependency of an extra is not a string                           | `TypeError`    |
+| A dependency of an extra is blank                                  | `ValueError`   |
 
 ### Strict and warn-only modes
 
-Unknown options (for example `excludes` instead of `exclude`) fail the build, because a typo would
-otherwise be ignored silently. A person who builds a project they do not control can downgrade this
-problem to a `UserWarning` with an environment variable, which is read when the hook is created:
+Unknown options (for example `excludes` instead of `exclude`) and `exclude` entries that match no
+extra fail the build, because a typo would otherwise be ignored silently. A person who builds a
+project they do not control can downgrade these two problems to a `UserWarning` with an environment variable, which is read when the hook is created:
 
 ```bash
 HATCHLING_AUTOEXTRAS_WARN_ONLY=1 python -m build
@@ -252,7 +257,7 @@ HATCHLING_AUTOEXTRAS_WARN_ONLY=1 python -m build
 
 Accepted values (case-insensitive): `1`, `true`, `yes`, `on` enable the warn-only mode; `0`,
 `false`, `no`, `off`, an empty value or an unset variable keep the strict mode. Any other value
-raises a `ValueError`. The unknown option is ignored in the warn-only mode. Every other problem
+raises a `ValueError`. The unknown option and the unmatched `exclude` entry are ignored in the warn-only mode. Every other problem
 still raises.
 
 ## Advanced Usage
