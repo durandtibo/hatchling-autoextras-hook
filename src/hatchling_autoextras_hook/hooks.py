@@ -1,4 +1,43 @@
-r"""Hatchling metadata hook to automatically generate 'all' extras."""
+r"""Hatchling metadata hook to automatically generate 'all' extras.
+
+Properties of the hook:
+
+- **Union of the extras**: the generated extra contains every
+  dependency of every non-excluded extra, and nothing else. It never
+  contains its own previous content.
+- **Deterministic**: the output is the sorted list of the distinct
+  dependency strings, whatever the order of the extras.
+- **Additive**: the original extras are never modified, reordered or
+  removed. Only the generated extra is added (or replaced when
+  ``overwrite = true``).
+- **Atomic**: ``update`` either completes or raises with ``metadata``
+  unchanged.
+- **Name-normalized**: the extra names are compared after the
+  normalization of PEP 685 (``Dev_Extra``, ``dev-extra`` and
+  ``dev.extra`` are the same extra).
+- **Strict**: by default, an unknown option, a wrong type, an invalid
+  name, a non-string or blank dependency and an ``exclude`` entry that
+  matches no extra raise. Nothing is ignored silently.
+- **Lenient on request**: with ``HATCHLING_AUTOEXTRAS_WARN_ONLY=1``,
+  the two recoverable problems (unknown option, unmatched ``exclude``
+  entry) emit a ``UserWarning``. Every other problem still raises.
+- **Early and named errors**: the configuration errors are raised when
+  the hook is created. The metadata errors name the extra and the
+  position of the faulty entry.
+- **Pure besides ``metadata``**: no file access, no global state, no
+  state kept between calls. The only environment read is
+  ``HATCHLING_AUTOEXTRAS_WARN_ONLY``, once, when the hook is created.
+- **Minimal**: one runtime dependency (``hatchling``), one public class
+  and three options.
+- **Observable**: what was generated is logged at ``DEBUG`` level.
+
+Not guaranteed: the validity of a requirement (the requirements are not
+parsed: an invalid one is copied and rejected by hatchling), the
+semantic deduplication (``numpy>=2`` and ``numpy >= 2`` are two strings,
+hatchling merges them afterwards), PEP 735 dependency groups,
+``dynamic = ["optional-dependencies"]`` and the hatchling option
+``allow-ambiguous-features``.
+"""
 
 from __future__ import annotations
 
