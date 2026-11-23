@@ -3,10 +3,13 @@ r"""Hatchling metadata hook to automatically generate 'all' extras.
 Properties of the hook:
 
 - **Union of the extras**: the generated extra contains every
-  dependency of every non-excluded extra, and nothing else. It never
-  contains its own previous content.
+  dependency string of every non-excluded extra, and nothing else. It
+  never contains its own previous content. The strings are copied, not
+  interpreted (see the self-references below).
 - **Deterministic**: the output is the sorted list of the distinct
-  dependency strings, whatever the order of the extras.
+  dependency strings, whatever the order of the extras. The generated
+  extra is always the last key of the table, whether it is new,
+  replaced or renamed by ``overwrite``.
 - **Additive**: the original extras are never modified, reordered or
   removed. Only the generated extra is added (or replaced when
   ``overwrite = true``).
@@ -22,21 +25,30 @@ Properties of the hook:
   the two recoverable problems (unknown option, unmatched ``exclude``
   entry) emit a ``UserWarning``. Every other problem still raises.
 - **Early and named errors**: the configuration errors are raised when
-  the hook is created. The metadata errors name the extra and the
-  position of the faulty entry.
-- **Pure besides ``metadata``**: no file access, no global state, no
+  the hook is created, before any metadata is read. Every message of a
+  configuration problem names the option and the table
+  ``[tool.hatch.metadata.hooks.autoextras]``. The metadata errors name
+  the extra and the position of the faulty entry.
+- **Pure besides ``metadata``**: ``update`` reads the validated options
+  and mutates only ``metadata``. No file access, no global state, no
   state kept between calls. The only environment read is
   ``HATCHLING_AUTOEXTRAS_WARN_ONLY``, once, when the hook is created.
-- **Minimal**: one runtime dependency (``hatchling``), one public class
-  and three options.
+- **Minimal**: one runtime dependency (``hatchling``). One hook class,
+  one entry point, ``__version__``. Three options, all keyword-style
+  entries of the ``pyproject.toml`` hook table.
 - **Observable**: what was generated is logged at ``DEBUG`` level.
 
 Not guaranteed: the validity of a requirement (the requirements are not
 parsed: an invalid one is copied and rejected by hatchling), the
 semantic deduplication (``numpy>=2`` and ``numpy >= 2`` are two strings,
-hatchling merges them afterwards), PEP 735 dependency groups,
-``dynamic = ["optional-dependencies"]`` and the hatchling option
-``allow-ambiguous-features``.
+hatchling merges them afterwards), the self-references (``docs =
+["pkg[dev]"]`` is a string like any other: with ``exclude = ["dev"]``,
+the generated extra contains ``pkg[dev]`` or the dependencies of
+``dev``, depending on whether the hatchling version resolves the
+reference), PEP 735 dependency groups, the hatchling option
+``allow-ambiguous-features``, and the runs of the hook: hatchling runs a
+metadata hook only when ``project.dynamic`` is not empty, and the hook
+cannot detect that it was not called.
 """
 
 from __future__ import annotations
@@ -91,7 +103,8 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
     Unknown options are rejected with a ``ValueError``. Setting the
     environment variable ``HATCHLING_AUTOEXTRAS_WARN_ONLY`` to ``1``,
     ``true``, ``yes`` or ``on`` downgrades the recoverable problems
-    (currently the unknown options) to a ``UserWarning``. ``0``,
+    (the unknown options and the ``exclude`` entries that match no
+    extra) to a ``UserWarning``. ``0``,
     ``false``, ``no``, ``off``, an empty value or an unset variable
     keep the strict mode. Any other value raises a ``ValueError``.
 
@@ -130,10 +143,14 @@ class AutoExtrasMetadataHook(MetadataHookInterface):
             config: The plugin configuration dictionary.
 
         Raises:
-            ValueError: If the configuration is invalid, or if the
-                environment variable ``HATCHLING_AUTOEXTRAS_WARN_ONLY``
-                has an unrecognized value.
-            TypeError: If the configuration is invalid.
+            ValueError: If an unknown option is given (a warning in the
+                warn-only mode), if ``group-name`` is not a valid extra
+                name, if ``exclude`` contains the generated extra, or
+                if the environment variable
+                ``HATCHLING_AUTOEXTRAS_WARN_ONLY`` has an unrecognized
+                value.
+            TypeError: If ``group-name`` is not a string, ``exclude`` is
+                not a list of strings or ``overwrite`` is not a boolean.
         """
         self._warn_only: bool = _read_warn_only()
         unknown = sorted(config.keys() - _DEFAULTS.keys())
