@@ -119,21 +119,21 @@ pip install your-package[all]
 
 These are the guarantees of the hook:
 
-| Property                | Statement                                                                                                                                      |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Property                | Statement                                                                                                                                                                                                                                                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Union of the extras     | The generated extra contains every dependency string of every non-excluded extra, and nothing else. It never contains its own previous content. The strings are copied, not interpreted (see the self-references below). If there is nothing to collect, the generated extra is empty, so that `pkg[all]` stays installable. |
-| Deterministic           | The output is the list of the distinct stripped dependency strings, sorted as strings (code point order, so `Zed` comes before `alpha`), whatever the order of the extras. The generated extra is always the last key of the table, whether it is new, replaced or renamed by `overwrite`. |
-| Additive                | Original extras are never modified, reordered or removed. Only the generated extra is added (or replaced when `overwrite = true`).             |
-| Atomic                  | The hook either completes or raises with the metadata unchanged.                                                                               |
-| Idempotent on request   | With `overwrite = true`, running `update` again on its own output gives the same metadata. With `overwrite = false` the second run raises, because the extra exists. |
-| Name-normalized         | Extra names are compared after the normalization of PEP 685 (`Dev_Extra`, `dev-extra` and `dev.extra` are the same extra).                      |
-| Strict                  | By default, an unknown option, a wrong type, an invalid name, a non-string or blank dependency, and an `exclude` entry that matches no extra raise. |
-| Lenient on request      | With `HATCHLING_AUTOEXTRAS_WARN_ONLY=1`, the unknown options and the unmatched `exclude` entries warn. Every other problem still raises.        |
-| Output-invariant        | The warn-only mode never changes the generated extra. A build that succeeds in both modes produces the same metadata: the mode only turns an error into a warning for a problem that has no effect on the result. |
-| Early and named errors  | Configuration errors are raised before any metadata is read. Every message of a configuration problem names the option and the table `[tool.hatch.metadata.hooks.autoextras]`. Metadata errors name the extra and the position of the faulty entry. |
-| Pure besides `metadata` | `update` reads the validated options and mutates only `metadata`. No file access, no global state, no state kept between calls. The only environment variable read is `HATCHLING_AUTOEXTRAS_WARN_ONLY`, once, when the hook is created. |
-| Minimal                 | One runtime dependency (`hatchling`). One hook class, one entry point, `__version__`. Three options, all keyword-style entries of the `pyproject.toml` hook table. |
-| Observable              | What was generated is logged at `DEBUG` level.                                                                                                 |
+| Deterministic           | The output is the list of the distinct stripped dependency strings, sorted as strings (code point order, so `Zed` comes before `alpha`), whatever the order of the extras. The generated extra is always the last key of the table, whether it is new, replaced or renamed by `overwrite`.                                   |
+| Additive                | Original extras are never modified, reordered or removed. Only the generated extra is added (or replaced when `overwrite = true`).                                                                                                                                                                                           |
+| Atomic                  | The hook either completes or raises with the metadata unchanged.                                                                                                                                                                                                                                                             |
+| Idempotent on request   | With `overwrite = true`, running `update` again on its own output gives the same metadata. With `overwrite = false` the second run raises, because the extra exists.                                                                                                                                                         |
+| Name-normalized         | Extra names are compared after the normalization of PEP 685 (`Dev_Extra`, `dev-extra` and `dev.extra` are the same extra).                                                                                                                                                                                                   |
+| Strict                  | By default, an unknown option, a wrong type, an invalid name, a non-string or blank dependency, and an `exclude` entry that matches no extra raise.                                                                                                                                                                          |
+| Lenient on request      | With `HATCHLING_AUTOEXTRAS_WARN_ONLY=1`, the unknown options and the unmatched `exclude` entries warn. Every other problem still raises.                                                                                                                                                                                     |
+| Output-invariant        | The warn-only mode never changes the generated extra. A build that succeeds in both modes produces the same metadata: the mode only turns an error into a warning for a problem that has no effect on the result.                                                                                                            |
+| Early and named errors  | Configuration errors are raised before any metadata is read. Every message of a configuration problem names the option and the table `[tool.hatch.metadata.hooks.autoextras]`. Metadata errors name the extra and the position of the faulty entry.                                                                          |
+| Pure besides `metadata` | `update` reads the validated options and mutates only `metadata`. No file access, no global state, no state kept between calls. The only environment variable read is `HATCHLING_AUTOEXTRAS_WARN_ONLY`, once, when the hook is created.                                                                                      |
+| Minimal                 | One runtime dependency (`hatchling`). One hook class, one entry point, `__version__`. Three options, all keyword-style entries of the `pyproject.toml` hook table.                                                                                                                                                           |
+| Observable              | What was generated is logged at `DEBUG` level.                                                                                                                                                                                                                                                                               |
 
 Not guaranteed:
 
@@ -307,7 +307,7 @@ overwrite = true
   not called and no extra is generated, without any message.
 - `dynamic = ["optional-dependencies"]` cannot be combined with a static
   `[project.optional-dependencies]` table: Hatchling fails with `Metadata field
-  optional-dependencies cannot be both statically defined and listed in field project.dynamic`.
+optional-dependencies cannot be both statically defined and listed in field project.dynamic`.
 - `dynamic = ["optional-dependencies"]` without a static table: the hook runs without extras and
   generates `all = []`.
 - The interaction with other metadata hooks is not specified.
