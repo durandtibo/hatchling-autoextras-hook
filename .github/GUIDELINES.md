@@ -54,7 +54,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | `nightly-package.yaml`               | nightly (10:30 UTC), manual            | Test the package published on PyPI: calls the `nightly-test-*` workflows.                                    |
 | `nightly-test-package.yaml`          | called by `nightly-package.yaml`       | Run the tests against the installed PyPI package.                                                            |
 | `nightly-test-package-dep.yaml`      | called by `nightly-package.yaml`       | Test the installed PyPI package with the supported versions of one dependency.                               |
-| `release-pypi.yaml`                  | version tag `v*.*.*`, manual           | Run the CI, then build, sign, attest (SLSA, GitHub provenance) and publish the package to PyPI.              |
+| `release-pypi.yaml`                  | version tag `v*.*.*`, manual           | Run the CI, then build, sign, attest and publish the package to PyPI.                                        |
 | `security-audit.yaml`                | weekly (Monday), manual                | Audit the locked dependencies for known vulnerabilities (`pip-audit`).                                       |
 | `security-dependency-review.yaml`    | pull request                           | Review the dependencies added by the pull request.                                                           |
 | `security-scorecard.yaml`            | weekly, push, branch protection change | OSSF Scorecard supply-chain analysis.                                                                        |
