@@ -59,5 +59,5 @@ Most scripts require dependencies from the `dev` dependency group:
 uv sync --group dev
 
 # Or using the project's invoke tasks
-make install-all
+inv env.install
 ```

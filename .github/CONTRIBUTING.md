@@ -40,6 +40,9 @@ make setup-venv
 
 # Activate the virtual environment
 source .venv/bin/activate
+
+# List the available tasks (provided by invoke-tasklib)
+inv --list
 ```
 
 ## Pull Requests
@@ -65,13 +68,13 @@ We actively welcome your pull requests.
 
    ```bash
    # Run unit tests
-   inv unit-test --cov
+   inv test.unit --cov
 
    # Run integration tests
-   inv integration-test
+   inv test.integration
 
-   # Run both with coverage report
-   inv unit-test --cov && inv integration-test --cov
+   # Run all the tests with a coverage report
+   inv test.all --cov
    ```
 
 5. Make sure your code lints and is properly formatted:
@@ -81,8 +84,9 @@ We actively welcome your pull requests.
    pre-commit run --all-files
 
    # Or run individual tools
-   inv check-format  # Check formatting
-   inv check-lint    # Check linting
+   inv format.check-python  # Check formatting
+   inv lint.check-python    # Check linting
+   inv types.check          # Check type hints
    ```
 
 6. Commit your changes with a clear and descriptive commit message:
@@ -128,11 +132,11 @@ For feature requests, please include:
 
 This project follows specific code style guidelines:
 
-- **Formatting**: We use Black with a line length of 100
+- **Formatting**: We use Ruff with a line length of 100
 - **Linting**: We use Ruff for linting
 - **Docstrings**: Google-style docstrings
 - **Type hints**: We use type hints throughout the codebase
-- **Imports**: Sorted using isort
+- **Imports**: Sorted using Ruff
 
 Pre-commit hooks will automatically check and fix many style issues.
 
