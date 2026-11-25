@@ -12,6 +12,7 @@ Guidance for Claude Code and other coding agents working in this repository.
 - Tests: `tests/unit/` (mirrors the source tree) and `tests/integration/` (builds real projects).
 - Dev tooling: `dev/` (hatchling version matrix generation), `.github/` (workflows), `.make/`
   (shared Makefile includes), `tasks.py` + `invoke.yaml` (invoke tasks).
+- Design reviews: `review/` (target state of the package and the steps to reach it).
 - Supported Python: >= 3.11. Supported hatchling: >= 1.18, < 2.0.
 
 ## Environment
@@ -19,7 +20,10 @@ Guidance for Claude Code and other coding agents working in this repository.
 - Use the binaries in `.venv` (`.venv/bin/python`, `.venv/bin/pytest`, `.venv/bin/ruff`,
   `.venv/bin/ty`). Install with `uv sync --group dev`.
 - Lint and format before committing: `.venv/bin/ruff check --fix .`, `.venv/bin/ruff format .`,
-  `.venv/bin/ty check`, or run `pre-commit run --all-files`.
+  `.venv/bin/ty check`, or run `.venv/bin/pre-commit run --all-files`.
+- CI also checks the YAML, Makefile, shell, TOML, Markdown and workflow files with
+  `make format` and `make lint`, and type checks with `pyright` too
+  (`.venv/bin/inv types.check --complete`).
 - Fix issues rather than suppressing them with `# noqa` or `# type: ignore`. If a suppression is
   truly unavoidable, name the specific rule (bare `# noqa` is rejected by pre-commit) and explain why.
 - If a test fails, check whether it already fails on `main` (e.g. with `git stash`) before blaming
@@ -53,8 +57,10 @@ Guidance for Claude Code and other coding agents working in this repository.
 - When a PR conflicts with `main`, merge `origin/main` into the branch and resolve the conflicts
   (do not rebase and force-push). Most conflicts are two PRs appending tests at the end of the
   same test file: keep both. Check what `main` already contains before choosing a side.
-- Update any documentation that tracks the change (`README.md`, `dev/README.md`,
+- Update any documentation affected by the change (`README.md`, `dev/README.md`,
   `.github/GUIDELINES.md`, `.github/CONTRIBUTING.md`).
+- Update any tracking document (changelog, status table, issue, a file of `review/`) affected by
+  the change, with the PR number.
 
 ## Code
 
@@ -66,10 +72,15 @@ Guidance for Claude Code and other coding agents working in this repository.
   convention or reformat code you do not otherwise change.
 - Every function and method, public or private (leading underscore), needs a docstring with `Args`,
   `Returns`, `Raises` as relevant, and a doctest-style example where useful (examples are run by
-  `xdoctest`; use ` ```pycon ` blocks closed with a blank line, as in `hooks.py`).
-- Document constructor arguments in the class docstring or in `__init__` consistently with
-  existing code; keep the documented configuration options in `AutoExtrasMetadataHook` in sync
-  with `README.md` whenever options change.
+  `xdoctest`; use ` ```pycon ` blocks closed with a blank line, as in `hooks.py`). An override
+  that adds nothing to the docstring of the method it overrides (same behaviour, arguments and
+  exceptions) has no docstring: it inherits the parent's. Document an override when it adds
+  something, as `AutoExtrasMetadataHook.update` does.
+- Document the constructor arguments (`Args:`, `Raises:`) in the docstring of `__init__` and the
+  configuration options in the class docstring, as `AutoExtrasMetadataHook` does. Keep the
+  documented options in sync with `README.md` whenever they change.
+- Shared helpers used by several modules of `src/` are public functions (no leading underscore)
+  with their own tests, not private functions imported across modules.
 - Add `from __future__ import annotations` to every module, keep `__all__` up to date, and fully
   annotate all code (checked by `ty`).
 - Raise errors with a `msg` variable (`msg = "..."; raise ValueError(msg)`), per `EM`/`TRY` rules.
@@ -134,9 +145,10 @@ Guidance for Claude Code and other coding agents working in this repository.
 - Patching (`monkeypatch`, `unittest.mock.patch`) is fine in unit tests: it keeps them fast and
   simple and isolates the logic under test. But a patched test only proves the logic works against
   the patched stand-in, which may not match the real collaborator (signature, return type,
-  behaviour). Every patched behaviour needs an integration test in `tests/integration/` that
-  exercises the real thing without patching. The two kinds of test have different purposes; do not
-  drop one because the other exists.
+  behaviour). A passing patched unit test does not mean the feature works. Every patched
+  behaviour needs an integration test in `tests/integration/` that exercises the real thing without
+  patching. The two kinds of test have different purposes; do not drop one because the other
+  exists.
 - Run tests with `.venv/bin/pytest tests/unit` (fast) and `.venv/bin/pytest tests` (all).
 
 ### Test assertions
@@ -162,11 +174,12 @@ check. Cover, where applicable:
 - Typical inputs.
 - Edge cases: empty inputs, single-element inputs, duplicate inputs.
 - Boundary values (empty string, whitespace-only string, empty list).
-- Error conditions: inputs that should raise, with the right exception type and message.
+- Error conditions: inputs that should raise, with the right exception type and message
+  (including errors raised by collaborators the function calls).
 - Interactions between parameters (for example `exclude` with `overwrite`, or a custom
   `extra-name` with `exclude`), and the order of output entries.
-- Side effects: in-place mutation of `metadata`, deduplication, sorting, whitespace stripping, and
-  determinism across repeated calls.
+- Side effects: in-place mutation of `metadata`, deduplication, sorting, whitespace stripping,
+  determinism across repeated calls, and no state leaked between calls on reused objects.
 
 Prefer many small, precisely named tests (one behaviour per test) over a few broad ones, so a
 failure points at the specific behaviour that broke.
