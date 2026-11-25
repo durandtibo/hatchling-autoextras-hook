@@ -40,7 +40,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | `ci.yaml`                            | pull request, push to `main`, nightly  | Entry point: calls the `ci-*` checks below.                                                                  |
 | `ci-build.yaml`                      | called by `ci.yaml`                    | Build the package and check that the built package installs.                                                 |
 | `ci-cyclic-imports.yaml`             | called by `ci.yaml`, manual            | Check that there is no circular import (`inv imports.check-cycles`).                                         |
-| `ci-doctest.yaml`                    | called by `ci.yaml`, manual            | Run the doctests (`inv test.doctest-src`).                                                                   |
+| `ci-doctest.yaml`                    | called by `ci.yaml`, manual            | Run the doctests of the source code and Markdown files (`inv test.doctest`).                                 |
 | `ci-format.yaml`                     | called by `ci.yaml`, manual            | Check that all files are formatted and linted (`make format`, `make lint`), and the Python code with `ruff`. |
 | `ci-pre-commit.yaml`                 | called by `ci.yaml`, manual            | Run all the pre-commit hooks.                                                                                |
 | `ci-test.yaml`                       | called by `ci.yaml`                    | Unit and integration tests, with all the dependencies and with the required ones only.                       |
@@ -54,7 +54,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | `nightly-package.yaml`               | nightly (10:30 UTC), manual            | Test the package published on PyPI: calls the `nightly-test-*` workflows.                                    |
 | `nightly-test-package.yaml`          | called by `nightly-package.yaml`       | Run the tests against the installed PyPI package.                                                            |
 | `nightly-test-package-dep.yaml`      | called by `nightly-package.yaml`       | Test the installed PyPI package with the supported versions of one dependency.                               |
-| `release-pypi.yaml`                  | version tag `v*.*.*`, manual           | Run the CI, then build, sign and publish the package to PyPI.                                                |
+| `release-pypi.yaml`                  | version tag `v*.*.*`, manual           | Run the CI, then build, sign, attest (SLSA, GitHub provenance) and publish the package to PyPI.              |
 | `security-audit.yaml`                | weekly (Monday), manual                | Audit the locked dependencies for known vulnerabilities (`pip-audit`).                                       |
 | `security-dependency-review.yaml`    | pull request                           | Review the dependencies added by the pull request.                                                           |
 | `security-scorecard.yaml`            | weekly, push, branch protection change | OSSF Scorecard supply-chain analysis.                                                                        |
@@ -93,7 +93,9 @@ action/reusable workflow over copy-pasting steps.
   [`ratchet`](https://github.com/sethvargo/ratchet) via `workflows/bot-pin-action.yaml`.
   Never hand-pin a SHA without that comment — the next `bot-pin-action` run
   would otherwise silently downgrade or drift it. Local composite actions
-  (`uses: ./.github/actions/...`) are referenced by path, not pinned. Any
+  (`uses: ./.github/actions/...`) are referenced by path, not pinned. The one
+  exception is the SLSA generator reusable workflow of `release-pypi.yaml`: it
+  verifies its own ref, so it is referenced by a tag (`# ratchet:exclude`). Any
   runtime tool invoked outside of a pinned action (e.g. `npx <pkg>`) should
   also pin an explicit version, so a bot-authored PR can't pick up an
   unreviewed upstream release.
