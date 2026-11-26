@@ -7,35 +7,46 @@ import logging
 from pathlib import Path
 
 from feu.utils.io import save_json
-from feu.version import fetch_latest_minor_versions
+from feu.utils.mapping import sort_by_keys
+from feu.version import (
+    fetch_latest_major_versions_map,
+    fetch_latest_minor_versions_map,
+    partition_package_bounds,
+    read_pyproject_dependencies,
+    read_pyproject_optional_dependencies,
+)
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
-def fetch_package_versions() -> dict[str, list[str]]:
-    r"""Get the latest minor versions for each package dependency.
+def fetch_package_versions(base_dir: Path) -> dict[str, list[str]]:
+    r"""Get the versions for each package.
+
+    Args:
+        base_dir: Path to the base directory.
 
     Returns:
-        A dictionary mapping package names to lists of version strings.
-        Currently only contains versions for "hatchling".
+        A dictionary with the versions for each package.
     """
-    return {"hatchling": list(fetch_latest_minor_versions("hatchling", lower="1.18"))}
+    pyproject_path = base_dir.joinpath("pyproject.toml")
+
+    deps = read_pyproject_dependencies(pyproject_path) + read_pyproject_optional_dependencies(
+        pyproject_path
+    )
+    major_deps, minor_deps = partition_package_bounds(deps, [])
+
+    return sort_by_keys(
+        fetch_latest_major_versions_map(major_deps, include_lower_bound=True)
+        | fetch_latest_minor_versions_map(minor_deps, include_lower_bound=True)
+    )
 
 
 def main() -> None:
-    r"""Generate the package versions and save them in a JSON file.
-
-    This function:
-    1. Retrieves the latest minor versions for package dependencies
-    2. Logs the versions for debugging
-    3. Saves them to dev/config/package_versions.json
-
-    The generated file is used by CI/CD workflows to test against
-    multiple versions of dependencies.
-    """
-    versions = fetch_package_versions()
+    r"""Generate the package versions and save them in a JSON file."""
+    base_dir = Path(__file__).parent.parent
+    versions = fetch_package_versions(base_dir)
     logger.info("versions=%s", versions)
-    path = Path(__file__).parent.parent.joinpath("dev/config").joinpath("package_versions.json")
+    path = base_dir.joinpath("dev/config").joinpath("package_versions.json")
     logger.info("Saving package versions to %s", path)
     save_json(versions, path, exist_ok=True)
 
