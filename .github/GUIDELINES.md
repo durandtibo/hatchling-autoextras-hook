@@ -27,8 +27,8 @@ load-bearing for branch protection (see the comment at the top of `ci.yaml`)
 One `ci-*` workflow is deliberately _not_ called from `ci.yaml`, each
 standalone with its own trigger instead: `ci-verify-workflows.yaml` lints
 `.github/workflows/*` itself, so it has its own trigger instead of being part
-of `ci.yaml`. `release-pypi.yaml` calls `ci.yaml` (`workflow_call`) so nothing is
-published unless the whole CI passes.
+of `ci.yaml`. `release-pypi.yaml` does not run `ci.yaml`, so check that CI passes
+on the commit before tagging.
 
 ## Catalogue of the workflows
 
@@ -53,7 +53,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | `nightly-package.yaml`               | nightly (10:30 UTC), manual            | Test the package published on PyPI: calls the `nightly-test-*` workflows.                                    |
 | `nightly-test-package.yaml`          | called by `nightly-package.yaml`       | Run the tests against the installed PyPI package.                                                            |
 | `nightly-test-package-dep.yaml`      | called by `nightly-package.yaml`       | Test the installed PyPI package with the supported versions of one dependency.                               |
-| `release-pypi.yaml`                  | version tag `v*.*.*`, manual           | Run the CI, then build, sign, attest and publish the package to PyPI.                                        |
+| `release-pypi.yaml`                  | version tag `v*.*.*`, manual           | Build, sign, attest and publish the package to PyPI.                                                         |
 | `security-audit.yaml`                | weekly (Monday), manual                | Audit the locked dependencies for known vulnerabilities (`pip-audit`).                                       |
 | `security-dependency-review.yaml`    | pull request                           | Review the dependencies added by the pull request.                                                           |
 | `security-scorecard.yaml`            | weekly, push, branch protection change | OSSF Scorecard supply-chain analysis.                                                                        |
