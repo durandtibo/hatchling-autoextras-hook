@@ -49,7 +49,6 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | `ci-type-checking.yaml`              | called by `ci.yaml`, manual            | Type check the package with `ty` and `pyright` (`inv types.check --complete`).                               |
 | `ci-verify-workflows.yaml`           | pull request, push to `main`, manual   | Lint the files of `.github/workflows`.                                                                       |
 | `lib-get-test-matrix.yaml`           | called by other workflows, manual      | Load the Python versions and the operating systems to test.                                                  |
-| `lib-get-package-metadata.yaml`      | called by other workflows, manual      | Read the name, version and dependency specifiers from `pyproject.toml`.                                      |
 | `lib-get-package-versions.yaml`      | called by other workflows, manual      | Read the versions of the dependencies to test from `dev/config`.                                             |
 | `nightly-package.yaml`               | nightly (10:30 UTC), manual            | Test the package published on PyPI: calls the `nightly-test-*` workflows.                                    |
 | `nightly-test-package.yaml`          | called by `nightly-package.yaml`       | Run the tests against the installed PyPI package.                                                            |
@@ -125,11 +124,6 @@ Values that would otherwise be duplicated across workflows are centralized in
 - `../dev/config/package_versions.json` — version ranges to test dependencies
   against, read by `lib-get-package-versions.yaml` and kept
   current by `bot-generate-package-versions.yaml`.
-
-The package name and version are never duplicated in config: they're read
-directly from `../pyproject.toml` by the
-`durandtibo/extract-pyproject-metadata-action` composite action /
-`lib-get-package-metadata.yaml`, so they only need to be updated in one place.
 
 ## Validating changes to this directory
 

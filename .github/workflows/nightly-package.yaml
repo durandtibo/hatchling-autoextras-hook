@@ -7,11 +7,6 @@ on:
 permissions: {}
 
 jobs:
-  # Read the package name from pyproject.toml.
-  get-metadata:
-    permissions:
-      contents: read
-    uses: ./.github/workflows/lib-get-package-metadata.yaml
   # Get the version bounds of the dependencies from dev/config/package_versions.json,
   # kept up to date by bot-generate-package-versions.yaml.
   get-versions:
@@ -29,37 +24,37 @@ jobs:
   stable:
     permissions:
       contents: read
-    needs: [get-metadata, get-matrix]
+    needs: get-matrix
     uses: ./.github/workflows/nightly-test-package.yaml
     with:
-      install-cmd: "uv pip install ${{ needs.get-metadata.outputs.name }}"
+      install-cmd: "uv pip install hatchling-autoextras-hook"
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
   stable-all:
     permissions:
       contents: read
-    needs: [get-metadata, get-matrix]
+    needs: get-matrix
     uses: ./.github/workflows/nightly-test-package.yaml
     with:
-      install-cmd: 'uv pip install "${{ needs.get-metadata.outputs.name }}[all]"'
+      install-cmd: 'uv pip install "hatchling-autoextras-hook[all]"'
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
   latest:
     permissions:
       contents: read
-    needs: [get-metadata, get-matrix]
+    needs: get-matrix
     uses: ./.github/workflows/nightly-test-package.yaml
     with:
-      install-cmd: "uv pip install --pre ${{ needs.get-metadata.outputs.name }}"
+      install-cmd: "uv pip install --pre hatchling-autoextras-hook"
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
   latest-all:
     permissions:
       contents: read
-    needs: [get-metadata, get-matrix]
+    needs: get-matrix
     uses: ./.github/workflows/nightly-test-package.yaml
     with:
-      install-cmd: 'uv pip install --pre "${{ needs.get-metadata.outputs.name }}[all]"'
+      install-cmd: 'uv pip install --pre "hatchling-autoextras-hook[all]"'
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
   ##########################
@@ -69,10 +64,10 @@ jobs:
   hatchling:
     permissions:
       contents: read
-    needs: [get-metadata, get-versions, get-matrix]
+    needs: [get-versions, get-matrix]
     uses: ./.github/workflows/nightly-test-package-dep.yaml
     with:
       package-name: hatchling
-      install-cmd: "uv pip install ${{ needs.get-metadata.outputs.name }}"
+      install-cmd: "uv pip install hatchling-autoextras-hook"
       package-versions: ${{ toJson(fromJson(needs.get-versions.outputs.package_versions).hatchling) }}
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}

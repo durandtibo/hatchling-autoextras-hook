@@ -15,18 +15,11 @@ on:
 permissions: {}
 
 jobs:
-  # Read the package name from pyproject.toml.
-  get-metadata:
-    permissions:
-      contents: read
-    uses: ./.github/workflows/lib-get-package-metadata.yaml
-
   # Test the build on every supported Python version, including free-threaded
   # builds (e.g. 3.13t/3.14t), to catch version-specific build regressions.
   build:
     permissions:
       contents: read
-    needs: get-metadata
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -46,7 +39,7 @@ jobs:
       - name: Verify Build
         uses: durandtibo/verify-uv-build-action@88da014d506b5f0b4f657d4ba8920061ab785620 # ratchet:durandtibo/verify-uv-build-action@v0.0.7
         with:
-          package-name: ${{ needs.get-metadata.outputs.name }}
+          package-name: hatchling-autoextras-hook
           package-dependencies: hatchling
           dist-type: ${{ matrix.dist-type }}
       - name: Run package checks
