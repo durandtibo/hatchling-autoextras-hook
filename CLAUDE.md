@@ -24,8 +24,10 @@ Guidance for Claude Code and other coding agents working in this repository.
 - CI also checks the YAML, Makefile, shell, TOML, Markdown and workflow files with
   `make format` and `make lint`, and type checks with `pyright` too
   (`.venv/bin/inv types.check --complete`).
-- Fix issues rather than suppressing them with `# noqa` or `# type: ignore`. If a suppression is
-  truly unavoidable, name the specific rule (bare `# noqa` is rejected by pre-commit) and explain why.
+- Fix the issues raised by `ruff`, `ty` and `pyright` rather than suppressing them. Ignoring an
+  issue (`# noqa`, `# type: ignore`, `# ty: ignore`, a changed rule set, a cast that hides the
+  problem) is not fixing it. If a suppression is truly unavoidable, name the specific rule (bare
+  `# noqa` is rejected by pre-commit) and explain why.
 - If a test fails, check whether it already fails on `main` (e.g. with `git stash`) before blaming
   your change, and report pre-existing failures.
 - There is no `python` on the `PATH`; use the virtual environment. Prefer the `inv` tasks
