@@ -2,11 +2,12 @@
 requires = ["hatchling>=1.33"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build]
-sources = ["src"]
-
+# The tests of the package run from the source distribution, in the layout of the repository.
 [tool.hatch.build.targets.sdist]
 only-include = ["src", "tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hatchling_autoextras_hook"]
 
 [project]
 name = "hatchling-autoextras-hook"
