@@ -10,6 +10,8 @@ Guidance for Claude Code and other coding agents working in this repository.
 - Source: `src/hatchling_autoextras_hook/` (`hooks.py` holds `AutoExtrasMetadataHook`, registered
   through the `hatch` entry point `autoextras`).
 - Tests: `tests/unit/` (mirrors the source tree) and `tests/integration/` (builds real projects).
+  `tests/package/checks.py` checks an installed package (used by `ci-build.yaml` and the nightly
+  workflows).
 - Dev tooling: `dev/` (hatchling version matrix generation), `.github/` (workflows), `.make/`
   (shared Makefile includes), `tasks.py` + `invoke.yaml` (invoke tasks).
 - Design reviews: `review/` (target state of the package and the steps to reach it).
@@ -120,7 +122,8 @@ Guidance for Claude Code and other coding agents working in this repository.
   ```
 
 - Do not use `contextlib.suppress` in place of `pytest.raises` to swallow an expected exception:
-  it passes when no exception is raised, so the test does not prove the error happens.
+  it passes when no exception is raised, so the test does not prove the error happens. Use
+  `pytest.raises` with `match`, then assert on the state afterwards if needed.
 - Section headers in the tests have three lines. The second line is `#`, 5 spaces, the name,
   5 spaces and `#`. The first and third lines repeat `#` to match the length of the second line:
 
