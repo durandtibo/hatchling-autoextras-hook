@@ -38,7 +38,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | Workflow                             | Trigger                                | Purpose                                                                                                      |
 | ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `ci.yaml`                            | pull request, push to `main`, nightly  | Entry point: calls the `ci-*` checks below.                                                                  |
-| `ci-build.yaml`                      | called by `ci.yaml`                    | Build the package and check that the built package installs.                                                 |
+| `ci-build.yaml`                      | called by `ci.yaml`                    | Build the package, check that it installs, and run the tests from the source distribution.                   |
 | `ci-cyclic-imports.yaml`             | called by `ci.yaml`, manual            | Check that there is no circular import (`inv imports.check-cycles`).                                         |
 | `ci-doctest.yaml`                    | called by `ci.yaml`, manual            | Run the doctests of the source code and Markdown files (`inv test.doctest`).                                 |
 | `ci-format.yaml`                     | called by `ci.yaml`, manual            | Check that all files are formatted and linted (`make format`, `make lint`), and the Python code with `ruff`. |
