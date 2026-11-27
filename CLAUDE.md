@@ -199,8 +199,8 @@ it up to date when you add, rename or remove a workflow.
   - `ci-`: quality and test checks of the repository source. Most are reusable workflows
     (`workflow_call`, plus `workflow_dispatch` to run one alone) called from `ci.yaml`.
     `ci-verify-workflows.yaml` (every PR) is standalone and not called from `ci.yaml`.
-  - `lib-`: reusable helpers that compute an output for other workflows (test matrix, package
-    metadata, dependency versions).
+  - `lib-`: reusable helpers that compute an output for other workflows (test matrix, dependency
+    versions).
   - `nightly-`: scheduled tests of the _published_ PyPI package, not of the source.
     `nightly-package.yaml` is the entry point; the other `nightly-test-*` are called by it.
   - `bot-`: scheduled automation that opens pull requests (dependency updates, pinning
@@ -211,10 +211,8 @@ it up to date when you add, rename or remove a workflow.
 - `ci.yaml` is the single entry point of the checks (pull request, push to `main`, nightly).
   It calls `lib-get-test-matrix.yaml` once and passes the matrix (`test-matrix` input) to the
   test workflows, so the Python versions and OS are defined in one place (they come from
-  `durandtibo/workflow-config-action`). The package name, version and dependency specifiers come
-  from `lib-get-package-metadata.yaml` (`durandtibo/extract-pyproject-metadata-action`); do not
-  hardcode the package name in a workflow. To add a check, create a `ci-<name>.yaml` reusable
-  workflow and add a job in `ci.yaml`.
+  `durandtibo/workflow-config-action`). The package name is written directly in the workflows.
+  To add a check, create a `ci-<name>.yaml` reusable workflow and add a job in `ci.yaml`.
 - Conventions: a header comment that says what the workflow does and when it runs; `permissions: {}`
   at the workflow level and the minimum permissions per job; `timeout-minutes` on every job;
   `workflow_dispatch` on every workflow; actions pinned to a commit SHA with a

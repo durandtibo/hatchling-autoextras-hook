@@ -10,8 +10,9 @@ on:
         type: string
         required: true
       install-cmd:
+        default: "uv pip install hatchling-autoextras-hook"
         description: "Command to install the package"
-        required: true
+        required: false
         type: string
       package-versions:
         type: string

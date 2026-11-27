@@ -31,12 +31,6 @@ jobs:
     uses: ./.github/workflows/ci.yaml
     secrets: inherit
 
-  # Read the package name from pyproject.toml, for the URL of the environment.
-  get-metadata:
-    permissions:
-      contents: read
-    uses: ./.github/workflows/lib-get-package-metadata.yaml
-
   build:
     permissions:
       contents: read
@@ -116,7 +110,7 @@ jobs:
             dist/*.whl
 
   publish:
-    needs: [get-metadata, build, sign-and-release, provenance, attest]
+    needs: [build, sign-and-release, provenance, attest]
     # Only fail-closed on tag pushes: on a tag, publish must wait for
     # sign-and-release, provenance and attest to succeed; on
     # workflow_dispatch they are skipped (not failed), so allow publish to
@@ -134,7 +128,7 @@ jobs:
     timeout-minutes: 5
     environment:
       name: pypi
-      url: https://pypi.org/project/${{ needs.get-metadata.outputs.normalized_name }}/
+      url: https://pypi.org/project/hatchling-autoextras-hook/
     permissions:
       id-token: write # Required for PyPI Trusted Publishing (OIDC)
       contents: read # Required to download the signature bundles from the release
