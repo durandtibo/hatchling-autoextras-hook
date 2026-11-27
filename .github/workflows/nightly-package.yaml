@@ -62,9 +62,9 @@ jobs:
       install-cmd: 'uv pip install --pre "${{ needs.get-metadata.outputs.name }}[all]"'
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
-  ####################
-  #   Dependencies   #
-  ####################
+  ##########################
+  #     Dependencies     #
+  ##########################
 
   hatchling:
     permissions:

@@ -54,5 +54,6 @@ jobs:
         run: |
           set -euo pipefail
           echo "🔍 Running package checks..."
-          python tests/package_checks.py
+          python tests/package/checks.py
+
           echo "✅ Package checks passed"

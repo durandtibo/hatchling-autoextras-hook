@@ -49,7 +49,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | `ci-type-checking.yaml`              | called by `ci.yaml`, manual            | Type check the package with `ty` and `pyright` (`inv types.check --complete`).                               |
 | `ci-verify-workflows.yaml`           | pull request, push to `main`, manual   | Lint the files of `.github/workflows`.                                                                       |
 | `lib-get-test-matrix.yaml`           | called by other workflows, manual      | Load the Python versions and the operating systems to test.                                                  |
-| `lib-get-package-metadata.yaml`      | called by other workflows, manual      | Read the name, version and extras from `pyproject.toml`.                                                     |
+| `lib-get-package-metadata.yaml`      | called by other workflows, manual      | Read the name, version and dependency specifiers from `pyproject.toml`.                                      |
 | `lib-get-package-versions.yaml`      | called by other workflows, manual      | Read the versions of the dependencies to test from `dev/config`.                                             |
 | `nightly-package.yaml`               | nightly (10:30 UTC), manual            | Test the package published on PyPI: calls the `nightly-test-*` workflows.                                    |
 | `nightly-test-package.yaml`          | called by `nightly-package.yaml`       | Run the tests against the installed PyPI package.                                                            |
@@ -79,8 +79,8 @@ that need inputs and the pull request security review.
 - **`.github/workflows/lib-*.yaml`** (reusable workflows called with `uses:
 ./.github/workflows/lib-....yaml`): used when the output needs to feed a
   matrix, or when the shared logic is naturally a whole job (e.g. reading
-  the test matrix once and handing the JSON down to several
-  jobs via `needs:`).
+  the supported Python versions and operating systems once and handing the JSON
+  down to several jobs via `needs:`).
 
 When adding new duplication, prefer extending an existing composite
 action/reusable workflow over copy-pasting steps.
